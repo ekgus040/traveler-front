@@ -1,0 +1,41 @@
+import type { TravelCoordinates } from "../types/domain";
+
+const titleCoordinates: Record<string, TravelCoordinates> = {
+  "아쿠아가든 실내 테마카페": { lat: 37.5172, lon: 127.0473 },
+  "키즈 아트 체험관": { lat: 37.5104, lon: 127.0982 },
+  "리버사이드 브런치 하우스": { lat: 37.5269, lon: 127.0364 },
+  "여주 휴게 포인트": { lat: 37.2977, lon: 127.6372 },
+  "원주 로컬 국수집": { lat: 37.3422, lon: 127.9202 },
+  "강릉 안목 해변 산책": { lat: 37.7719, lon: 128.9476 },
+  "감천문화마을 뷰포인트": { lat: 35.0979, lon: 129.0106 },
+  "전포 골목 편집서점": { lat: 35.1578, lon: 129.0638 },
+  "광안리 야경 다이닝": { lat: 35.1532, lon: 129.1186 },
+  "안목해변": { lat: 37.7719, lon: 128.9476 },
+  "사천진 로컬 식당": { lat: 37.8432, lon: 128.8762 },
+  "사근진 해변 산책로": { lat: 37.8099, lon: 128.9034 },
+  "주문진 카페": { lat: 37.8917, lon: 128.824 },
+  "불국사": { lat: 35.7900, lon: 129.3320 },
+  "첨성대": { lat: 35.8347, lon: 129.2191 },
+  "교리김밥": { lat: 35.8326, lon: 129.2127 },
+  "경주 황리단길": { lat: 35.8380, lon: 129.2090 },
+  "석굴암": { lat: 35.7949, lon: 129.3492 },
+};
+
+const placeIdCoordinates: Record<string, TravelCoordinates> = {
+  "1": { lat: 37.7719, lon: 128.9476 },
+  "2": { lat: 37.8432, lon: 128.8762 },
+  "3": { lat: 37.8099, lon: 128.9034 },
+  "4": { lat: 37.8917, lon: 128.824 },
+};
+
+export function resolvePlaceCoordinates(title: string, sourcePlaceId?: string) {
+  if (titleCoordinates[title]) {
+    return titleCoordinates[title];
+  }
+
+  if (sourcePlaceId && placeIdCoordinates[sourcePlaceId]) {
+    return placeIdCoordinates[sourcePlaceId];
+  }
+
+  return undefined;
+}
