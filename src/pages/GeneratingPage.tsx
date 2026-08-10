@@ -1,4 +1,10 @@
-import { Check, CloudSun, Database, LoaderCircle, Map, Route, Sparkles } from "lucide-react";
+import Check from "lucide-react/dist/esm/icons/check.mjs";
+import CloudSun from "lucide-react/dist/esm/icons/cloud-sun.mjs";
+import Database from "lucide-react/dist/esm/icons/database.mjs";
+import LoaderCircle from "lucide-react/dist/esm/icons/loader-circle.mjs";
+import Map from "lucide-react/dist/esm/icons/map.mjs";
+import Route from "lucide-react/dist/esm/icons/route.mjs";
+import Sparkles from "lucide-react/dist/esm/icons/sparkles.mjs";
 import { useEffect, useState } from "react";
 import type { TravelMode } from "../types/domain";
 
@@ -52,13 +58,13 @@ export function GeneratingPage({ mode, isStreaming, error, onComplete, onBack }:
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-[22px] border border-[#E8E4DC] bg-white shadow-sm">
-        <div className="relative overflow-hidden bg-[#1C2B4A] px-7 py-10 text-center text-white">
-          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 50% 0%, #2D9C8C 0, transparent 55%)" }} />
+      <div className="overflow-hidden rounded-[26px] border border-white/80 bg-white shadow-[0_18px_50px_rgba(255,123,89,.12)]">
+        <div className="relative overflow-hidden bg-gradient-to-br from-[#FFB088] via-[#FF8A65] to-[#FF6B6B] px-7 py-10 text-center text-white">
+          <div className="absolute inset-0 opacity-25" style={{ backgroundImage: "radial-gradient(circle at 50% 0%, #FFD93D 0, transparent 55%)" }} />
           <div className="relative mx-auto mb-5 h-20 w-20">
             <div className="absolute inset-0 rounded-full border border-white/15" />
-            <div className="absolute inset-0 animate-ping rounded-full border border-[#2D9C8C]/40" />
-            <LoaderCircle className="absolute inset-2 h-16 w-16 animate-spin text-[#F07A3B]" strokeWidth={1.5} />
+            <div className="absolute inset-0 animate-ping rounded-full border border-white/40" />
+            <LoaderCircle className="absolute inset-2 h-16 w-16 animate-spin text-white" strokeWidth={1.5} />
             <div className="absolute inset-0 flex items-center justify-center">
               <Sparkles size={20} className="text-white" />
             </div>

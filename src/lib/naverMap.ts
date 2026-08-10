@@ -17,6 +17,7 @@ declare global {
           },
         ) => {
           fitBounds: (bounds: unknown, padding?: number | unknown) => void;
+          panTo: (position: unknown) => void;
         };
         Marker: new (options: {
           position: unknown;

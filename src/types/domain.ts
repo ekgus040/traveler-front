@@ -19,6 +19,7 @@ export type Place = {
   tags: string[];
   badge?: PlaceBadge;
   summary: string;
+  recommendReason?: string;
   coordinates?: TravelCoordinates;
 };
 
@@ -41,6 +42,7 @@ export type TravelComposerState = {
   companion: string;
   pace: string;
   mood: string;
+  interest: string;
   startPoint: string;
   endPoint: string;
 };
@@ -58,6 +60,7 @@ export type TravelPromptInput = {
 export type TravelChatRequest = TravelCoordinates & {
   sessionId: string;
   userMessage: string;
+  mode: TravelMode;
 };
 
 export type TravelStreamStatus = "idle" | "live" | "ready" | "error";

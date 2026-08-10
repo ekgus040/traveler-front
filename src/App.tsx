@@ -1,27 +1,22 @@
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
-import { Navigation } from "lucide-react";
+import Navigation from "lucide-react/dist/esm/icons/navigation.mjs";
 import {
   COMPANION_OPTIONS,
   DEFAULT_TRAVEL_COMPOSER,
   MOOD_OPTIONS,
   PACE_OPTIONS,
   WEATHER_OPTIONS,
-  mapHighlights,
   modeCards,
   modeLabels,
 } from "./data/content";
 import { useRecommendationStream } from "./features/travel/hooks/useRecommendationStream";
 import { useTravelSession } from "./features/travel/hooks/useTravelSession";
-import GeneratingPage from "./pages/GeneratingPage";
+import ChatPlannerPage from "./pages/ChatPlannerPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import OverviewPage from "./pages/OverviewPage";
-import PlannerPage from "./pages/PlannerPage";
 import ResultsPage from "./pages/ResultsPage";
 import type { TravelComposerState, TravelMode } from "./types/domain";
-
-const LONGDIST_NOTICE =
-  "장거리 모드는 현재 실제 경로 계산 대신, 목적지 중심의 이동 가이드를 먼저 보여줍니다.";
 
 const navItems = [
   { to: "/", label: "홈" },
@@ -73,7 +68,6 @@ function App() {
     () => modeCards.find((mode) => mode.id === selectedMode) ?? modeCards[0],
     [selectedMode],
   );
-  const mapNotes = useMemo(() => mapHighlights[selectedMode], [selectedMode]);
   const canSaveVisited = useMemo(
     () => places.some((place) => place.sourcePlaceId),
     [places],
@@ -115,12 +109,7 @@ function App() {
 
   function handleGenerate() {
     startRecommendation(composer);
-    void navigate("/generating");
   }
-
-  const handleGenerationComplete = useCallback(() => {
-    void navigate("/course/demo");
-  }, [navigate]);
 
   function handleModeStart(mode: TravelMode) {
     setSelectedMode(mode);
@@ -137,6 +126,13 @@ function App() {
   function handleRefineSubmit() {
     if (!refineDraft.trim()) return;
     const nextComposer = { ...composer, query: refineDraft.trim() };
+    setComposer(nextComposer);
+    setRefineDraft("");
+    startRecommendation(nextComposer);
+  }
+
+  function handleRegenerate() {
+    const nextComposer = { ...composer, query: "방문했던 장소를 제외하고 다른 코스를 추천해줘" };
     setComposer(nextComposer);
     setRefineDraft("");
     startRecommendation(nextComposer);
@@ -205,13 +201,6 @@ function App() {
         </div>
       </header>
 
-      {/* ── Error banner ── */}
-      {combinedError ? (
-        <div className="border-b border-amber-200 bg-amber-50 px-6 py-3 text-sm text-amber-800">
-          <strong>백엔드 연결 불안정:</strong> 추천 요청이 실패할 수 있습니다.
-        </div>
-      ) : null}
-
       {/* ── Pages ── */}
       <main className="page-wrap">
         <Routes>
@@ -240,40 +229,22 @@ function App() {
           <Route
             path="/planner"
             element={
-              <PlannerPage
-                modes={modeCards.map((mode) => ({
-                  value: mode.id,
-                  emoji: mode.emoji,
-                  title: mode.title,
-                  subtitle: mode.subtitle,
-                  description: mode.description,
-                }))}
+              <ChatPlannerPage
                 selectedMode={selectedMode}
-                onModeChange={handleModeChange}
                 composer={composer}
                 onComposerChange={updateComposer}
-                weatherOptions={WEATHER_OPTIONS}
                 companionOptions={COMPANION_OPTIONS}
                 paceOptions={PACE_OPTIONS}
-                moodOptions={MOOD_OPTIONS}
-                showRouteFields={selectedMode === "longdist"}
                 onSubmit={handleGenerate}
                 onReset={() => void handleReset()}
-                isSubmitting={isStreaming}
-                visitedCount={visitedIds.length}
-                preferences={prefs}
-              />
-            }
-          />
-          <Route
-            path="/generating"
-            element={
-              <GeneratingPage
-                mode={selectedMode}
                 isStreaming={isStreaming}
-                error={streamError}
-                onComplete={handleGenerationComplete}
-                onBack={() => void navigate("/planner")}
+                error={combinedError}
+                messages={messages}
+                places={places}
+                followUpDraft={refineDraft}
+                onFollowUpDraftChange={setRefineDraft}
+                onFollowUpSubmit={handleRefineSubmit}
+                onConfirm={() => void navigate("/course/demo")}
               />
             }
           />
@@ -283,15 +254,12 @@ function App() {
             element={
               <ResultsPage
                 title={`${currentModeMeta.title} 추천 코스`}
-                subtitle={currentModeMeta.subtitle}
-                description={
-                  selectedMode === "longdist" ? LONGDIST_NOTICE : currentModeMeta.description
-                }
-                notes={mapNotes}
+                subtitle=""
+                description=""
+                notes={[]}
                 selectedMode={selectedMode}
                 places={places}
-                visitedIds={visitedIds}
-                onSaveVisited={() => void saveVisitedPlaces(places)}
+                onSaveVisited={() => saveVisitedPlaces(places)}
                 canSaveVisited={canSaveVisited}
                 isSavingVisited={isSavingVisited}
                 onNavigatePlanner={() => void navigate("/planner")}
@@ -303,6 +271,7 @@ function App() {
                 onChatSubmit={handleRefineSubmit}
                 isStreaming={isStreaming}
                 chatError={combinedError}
+                onRegenerate={handleRegenerate}
               />
             }
           />

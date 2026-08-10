@@ -3,6 +3,7 @@ import type {
   SessionWriteResponse,
   SessionPrefsResponse,
   HealthResponse,
+  RecommendedPlacePayload,
 } from "../types/api";
 import type { TravelChatRequest, TravelCoordinates } from "../types/domain";
 const IS_MOCK = import.meta.env.VITE_MOCK_MODE === "true";
@@ -16,6 +17,7 @@ export function buildChatUrl(params: TravelChatRequest) {
   url.searchParams.set("session_id", params.sessionId);
   url.searchParams.set("lat", String(params.lat));
   url.searchParams.set("lon", String(params.lon));
+  url.searchParams.set("mode", params.mode);
   return url.toString();
 }
 
@@ -46,6 +48,34 @@ export async function getSessionPrefs(sessionId: string) {
 
 export async function getHealth() {
   return request<HealthResponse>("/health");
+}
+
+export async function enrichRecommendedPlaces(
+  places: RecommendedPlacePayload[],
+): Promise<RecommendedPlacePayload[]> {
+  return Promise.all(places.map(async (place) => {
+    if (place.place_name && place.lat != null && place.lng != null) {
+      return place;
+    }
+
+    try {
+      const response = await fetch(`/tour-place?contentId=${encodeURIComponent(place.place_id)}`);
+      if (!response.ok) return place;
+
+      const detail = await response.json() as Partial<RecommendedPlacePayload>;
+      return {
+        ...detail,
+        ...place,
+        place_name: place.place_name ?? detail.place_name,
+        category: place.category ?? detail.category,
+        lat: place.lat ?? detail.lat,
+        lng: place.lng ?? detail.lng,
+        description: place.description ?? detail.description,
+      };
+    } catch {
+      return place;
+    }
+  }));
 }
 
 export async function getRoute(coordinates: TravelCoordinates[]): Promise<[number, number][]> {

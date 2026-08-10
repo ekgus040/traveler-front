@@ -1,4 +1,6 @@
-import { ArrowRight, CloudSun, RefreshCw } from "lucide-react";
+import ArrowRight from "lucide-react/dist/esm/icons/arrow-right.mjs";
+import CloudSun from "lucide-react/dist/esm/icons/cloud-sun.mjs";
+import RefreshCw from "lucide-react/dist/esm/icons/refresh-cw.mjs";
 import type { ModeSelectorOption } from "./ModeSelector";
 import type { SelectFieldOption } from "../fields/SelectField";
 import TextField from "../fields/TextField";
@@ -81,8 +83,8 @@ export function RecommendationForm({
               onClick={() => onModeChange(mode.value)}
               className={`rounded-[10px] border px-3 py-3 text-left transition-colors ${
                 selectedMode === mode.value
-                  ? "border-[#1C2B4A] bg-[#1C2B4A] text-white"
-                  : "border-[#E8E4DC] bg-[#F9F7F2] hover:border-[#1C2B4A]"
+                  ? "border-[#FF7B59] bg-gradient-to-br from-[#FF7B59] to-[#FF6B6B] text-white shadow-[0_8px_18px_rgba(255,123,89,.18)]"
+                  : "border-[#2D3436]/10 bg-[#FFF6EC] hover:border-[#FF7B59]/60"
               }`}
             >
               <span className={`block text-[13px] font-semibold ${selectedMode === mode.value ? "text-white" : "text-[#1C2B4A]"}`}>
@@ -112,7 +114,7 @@ export function RecommendationForm({
               key={brief}
               type="button"
               onClick={() => onQueryChange(brief)}
-              className="rounded-full border border-[#E8E4DC] bg-white px-3 py-1.5 text-left text-[12px] text-[#4A5568] transition-colors hover:border-[#2D9C8C] hover:text-[#2D9C8C]"
+              className="rounded-full border border-[#2D3436]/10 bg-white px-3 py-1.5 text-left text-[12px] text-[#4A5658] transition-colors hover:border-[#FF7B59] hover:text-[#FF7B59]"
             >
               {brief}
             </button>
@@ -222,7 +224,7 @@ export function RecommendationForm({
           type="button"
           disabled={isSubmitting}
           onClick={onSubmit}
-          className="flex flex-1 items-center justify-center gap-2 rounded-[10px] bg-[#F07A3B] py-3.5 text-[15px] font-bold text-white transition-colors hover:bg-[#E06928] disabled:opacity-60"
+          className="flex flex-1 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#FF7B59] to-[#FF6B6B] py-3.5 text-[15px] font-bold text-white shadow-[0_10px_24px_rgba(255,123,89,.22)] transition-transform hover:-translate-y-0.5 disabled:opacity-60"
         >
           {isSubmitting ? "추천 생성 중..." : submitLabel}
           {!isSubmitting && <ArrowRight size={16} />}

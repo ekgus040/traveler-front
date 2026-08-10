@@ -1,4 +1,4 @@
-import { ChevronRight } from "lucide-react";
+import ChevronRight from "lucide-react/dist/esm/icons/chevron-right.mjs";
 import RecommendationForm from "../components/travel/RecommendationForm";
 import type { TravelComposerState } from "../types/domain";
 import type { ModeSelectorOption } from "../components/travel/ModeSelector";
@@ -50,9 +50,10 @@ export function PlannerPage({
 
       <div className="grid items-start gap-7 lg:grid-cols-[1fr_400px]">
         {/* ── Left: Form ── */}
-        <div className="rounded-[18px] border border-[#F0EDE8] bg-white p-8 shadow-sm">
-          <h1 className="mb-1.5 text-[24px] font-bold leading-tight text-[#1C2B4A]">
-            어떤 여행을 계획 중이세요?
+        <div className="rounded-[24px] border border-white/80 bg-white/90 p-8 shadow-[0_12px_40px_rgba(85,61,45,.07)]">
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#FF7B59]">Talk to Traveler</p>
+          <h1 className="mb-1.5 text-[28px] font-extrabold leading-tight text-[#2D3436]">
+            평소 말투 그대로, 그냥 던지세요.
           </h1>
           <p className="mb-8 text-[14px] text-[#6B7280]">
             취향과 조건을 알려주시면 맞춤 코스를 추천해 드려요

@@ -1,38 +1,33 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  DEFAULT_RECOMMENDATION_COORDINATES,
-} from "../../../data/content";
+import { DEFAULT_RECOMMENDATION_COORDINATES } from "../../../data/content";
 import { initialChats, mockBotMessages, mockPlaces } from "../../../data/mock";
-import { openChatRecommendationStream } from "../../../api/traveler";
+import { enrichRecommendedPlaces, openChatRecommendationStream } from "../../../api/traveler";
 
 const IS_MOCK = import.meta.env.VITE_MOCK_MODE === "true";
 import type {
   ChatMessage,
   Place,
   TravelComposerState,
-  TravelCoordinates,
   TravelMode,
   TravelStreamStatus,
 } from "../../../types/domain";
-import type { ChatStreamPayload } from "../../../types/api";
+import type { ChatStreamPayload, RecommendedPlacePayload } from "../../../types/api";
 import { mapBackendPlaces } from "../model/mappers";
 import { buildTravelPrompt, buildTravelUserPreview } from "../model/prompt";
 
 type UseRecommendationStreamParams = {
   mode: TravelMode;
   sessionId: string;
-  coordinates?: TravelCoordinates;
   onPlacesResolved?: () => void | Promise<void>;
 };
 
 export function useRecommendationStream({
   mode,
   sessionId,
-  coordinates = DEFAULT_RECOMMENDATION_COORDINATES,
   onPlacesResolved,
 }: UseRecommendationStreamParams) {
-  const [messages, setMessages] = useState<ChatMessage[]>(() => initialChats[mode]);
-  const [places, setPlaces] = useState<Place[]>(() => mockPlaces[mode]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => IS_MOCK ? initialChats[mode] : []);
+  const [places, setPlaces] = useState<Place[]>(() => IS_MOCK ? mockPlaces[mode] : []);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -41,8 +36,8 @@ export function useRecommendationStream({
     eventSourceRef.current?.close();
     setIsStreaming(false);
     setStreamError(null);
-    setMessages(initialChats[mode]);
-    setPlaces(mockPlaces[mode]);
+    setMessages(IS_MOCK ? initialChats[mode] : []);
+    setPlaces(IS_MOCK ? mockPlaces[mode] : []);
   }, [mode]);
 
   useEffect(() => {
@@ -56,7 +51,7 @@ export function useRecommendationStream({
   }, []);
 
   const startRecommendation = useCallback(
-    (composer: TravelComposerState) => {
+    async (composer: TravelComposerState) => {
       eventSourceRef.current?.close();
       setStreamError(null);
       setIsStreaming(true);
@@ -95,6 +90,13 @@ export function useRecommendationStream({
         return;
       }
 
+      let coordinates = DEFAULT_RECOMMENDATION_COORDINATES;
+      try {
+        coordinates = await getCurrentCoordinates();
+      } catch (error) {
+        setStreamError(`${getLocationErrorMessage(error)} 기본 위치로 추천을 계속합니다.`);
+      }
+
       const userMessage = buildTravelPrompt({ mode, composer });
 
       const source = openChatRecommendationStream({
@@ -102,14 +104,17 @@ export function useRecommendationStream({
         userMessage,
         lat: coordinates.lat,
         lon: coordinates.lon,
+        mode,
       });
 
       eventSourceRef.current = source;
+      let streamedJson = "";
 
       source.onmessage = (event) => {
         const payload = JSON.parse(event.data) as ChatStreamPayload;
 
         if (payload.bot_message) {
+          streamedJson += payload.bot_message;
           setMessages((current) => {
             const next = [...current];
             const last = next[next.length - 1];
@@ -124,10 +129,22 @@ export function useRecommendationStream({
         }
 
         if (payload.recommended_places.length > 0) {
-          setPlaces(mapBackendPlaces(payload.recommended_places, mode));
-          setIsStreaming(false);
           source.close();
-          void onPlacesResolved?.();
+          const structured = parseStructuredCourse(streamedJson);
+          const mergedPlaces = mergePlaceMetadata(
+            payload.recommended_places,
+            structured?.recommended_places ?? [],
+          );
+
+          void enrichRecommendedPlaces(mergedPlaces).then((resolvedPlaces) => {
+            setPlaces(mapBackendPlaces(resolvedPlaces, mode));
+            const botMessage = structured?.bot_message;
+            if (botMessage) {
+              setMessages((current) => replaceLastAssistantText(current, botMessage));
+            }
+            setIsStreaming(false);
+            void onPlacesResolved?.();
+          });
         }
       };
 
@@ -139,7 +156,7 @@ export function useRecommendationStream({
         );
       };
     },
-    [coordinates.lat, coordinates.lon, mode, onPlacesResolved, sessionId],
+    [mode, onPlacesResolved, sessionId],
   );
 
   const streamStatus = useMemo<TravelStreamStatus>(() => {
@@ -166,4 +183,92 @@ export function useRecommendationStream({
     startRecommendation,
     resetToModeSeed,
   };
+}
+
+type StructuredCourse = {
+  bot_message?: string;
+  recommended_places?: RecommendedPlacePayload[];
+};
+
+function parseStructuredCourse(value: string): StructuredCourse | null {
+  try {
+    const parsed = JSON.parse(value) as StructuredCourse;
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function mergePlaceMetadata(
+  finalPlaces: RecommendedPlacePayload[],
+  streamedPlaces: RecommendedPlacePayload[],
+) {
+  const streamedById = new Map(streamedPlaces.map((place) => [String(place.place_id), place]));
+
+  return finalPlaces.map((place) => {
+    const streamed = streamedById.get(String(place.place_id));
+    if (!streamed) return place;
+
+    return {
+      ...streamed,
+      ...place,
+      place_name: place.place_name ?? streamed.place_name,
+      duration_min: place.duration_min ?? streamed.duration_min,
+    };
+  });
+}
+
+function replaceLastAssistantText(messages: ChatMessage[], text: string) {
+  const next = [...messages];
+  for (let index = next.length - 1; index >= 0; index -= 1) {
+    if (next[index].role === "assistant") {
+      next[index] = { ...next[index], text };
+      break;
+    }
+  }
+  return next;
+}
+
+function getCurrentCoordinates(): Promise<{ lat: number; lon: number }> {
+  if (!("geolocation" in navigator)) {
+    return Promise.reject(new Error("Geolocation is not supported."));
+  }
+
+  return requestPosition({ enableHighAccuracy: true, timeout: 8_000, maximumAge: 60_000 })
+    .catch((error: GeolocationPositionError) => {
+      if (error.code === 1) throw error;
+      return requestPosition({ enableHighAccuracy: false, timeout: 15_000, maximumAge: 300_000 });
+    });
+}
+
+function requestPosition(options: PositionOptions): Promise<{ lat: number; lon: number }> {
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => resolve({
+        lat: position.coords.latitude,
+        lon: position.coords.longitude,
+      }),
+      reject,
+      options,
+    );
+  });
+}
+
+function getLocationErrorMessage(error: unknown) {
+  if (!window.isSecureContext) {
+    return "현재 주소에서는 위치 기능을 사용할 수 없습니다. http://127.0.0.1:4173으로 접속해 주세요.";
+  }
+  if (isGeolocationError(error)) {
+    if (error.code === 1) {
+      return "위치 권한이 차단돼 있습니다. 주소창의 사이트 설정에서 위치를 '허용'으로 변경한 뒤 새로고침해 주세요.";
+    }
+    if (error.code === 3) {
+      return "GPS 응답 시간이 초과됐습니다. macOS 위치 서비스가 켜져 있는지 확인한 뒤 다시 시도해 주세요.";
+    }
+  }
+  return "현재 위치를 가져오지 못했습니다. 브라우저와 macOS의 위치 서비스 설정을 확인해 주세요.";
+}
+
+function isGeolocationError(error: unknown): error is GeolocationPositionError {
+  return typeof error === "object" && error !== null && "code" in error;
 }

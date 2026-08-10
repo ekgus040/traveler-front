@@ -11,6 +11,8 @@ type ItineraryPanelProps = {
   saveLabel?: string;
   emptyPlacesText?: string;
   emptyVisitedText?: string;
+  selectedPlaceId?: string | null;
+  onPlaceSelect?: (placeId: string) => void;
 };
 
 export function ItineraryPanel({
@@ -23,10 +25,12 @@ export function ItineraryPanel({
   saveLabel = "저장해 두기",
   emptyPlacesText = "추천이 도착하면 이곳에 순서대로 보여드릴게요.",
   emptyVisitedText = "아직 저장된 장소가 없습니다.",
+  selectedPlaceId,
+  onPlaceSelect,
 }: ItineraryPanelProps) {
   return (
     <section>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-[16px] font-bold text-[#1C2B4A]">
           코스 상세 일정
           {places.length > 0 && (
@@ -40,7 +44,7 @@ export function ItineraryPanel({
             type="button"
             disabled={!canSaveVisited || isSavingVisited}
             onClick={onSaveVisited}
-            className="rounded-[8px] bg-[#F07A3B] px-4 py-2 text-[13px] font-bold text-white transition-colors hover:bg-[#E06928] disabled:opacity-50"
+            className="w-full rounded-[12px] bg-[#F07A3B] px-4 py-3 text-[13px] font-bold text-white transition-colors hover:bg-[#E06928] disabled:opacity-50 sm:w-auto sm:py-2"
           >
             {isSavingVisited ? "저장 중..." : saveLabel}
           </button>
@@ -61,7 +65,13 @@ export function ItineraryPanel({
       <div className="flex flex-col gap-3.5">
         {places.length > 0 ? (
           places.map((place, index) => (
-            <PlaceCard key={place.id} place={place} index={index} />
+            <PlaceCard
+              key={place.id}
+              place={place}
+              index={index}
+              selected={selectedPlaceId === place.id}
+              onSelect={onPlaceSelect}
+            />
           ))
         ) : (
           <div className="rounded-[14px] border border-dashed border-[#E8E4DC] bg-[#F9F7F2] p-8 text-center">
@@ -71,7 +81,7 @@ export function ItineraryPanel({
       </div>
 
       {places.length > 0 && (
-        <div className="mt-4 rounded-[14px] border border-[#E8E4DC] bg-[#F0EDE8] p-6 text-center">
+        <div className="mt-4 rounded-[14px] border border-[#E8E4DC] bg-[#F0EDE8] p-4 text-center sm:p-6">
           <p className="text-[13px] text-[#6B7280]">이번 추천 코스의 전체 일정이에요</p>
         </div>
       )}

@@ -6,6 +6,11 @@ export type RecommendedPlacePayload = {
   category?: string | null;
   distance_min?: number | null;
   indoor?: boolean | null;
+  lat?: number | null;
+  lng?: number | null;
+  description?: string | null;
+  recommend_reason?: string | null;
+  iconic_score?: number | null;
 };
 
 export type ChatStreamPayload = {
@@ -33,5 +38,5 @@ export type SessionPrefsResponse = {
 export type HealthResponse = {
   status: "ok" | string;
   redis: "connected" | "disconnected" | string;
-  note: string;
+  note?: string;
 };

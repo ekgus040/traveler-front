@@ -12,17 +12,22 @@ export function mapBackendPlaces(
     sourcePlaceId: String(place.place_id),
     title: place.place_name ?? `Place ${place.place_id}`,
     category: place.category ?? `${modeLabels[mode]} 추천`,
-    time: `${9 + place.visit_sequence}:00`,
+    time: "",
     tags: [
       place.indoor === true ? "실내" : place.indoor === false ? "야외" : "장소 후보",
-      place.distance_min != null ? `차량 약 ${place.distance_min}분` : `순서 ${place.visit_sequence}`,
-      place.duration_min != null ? `체류 ${place.duration_min}분` : "체류시간 확인 필요",
     ],
-    summary: `${place.place_name ?? `장소 ${place.place_id}`}을(를) ${place.visit_sequence}번째 코스로 추천합니다. 이동 동선과 현재 여행 조건을 반영한 후보입니다.`,
-    coordinates: resolvePlaceCoordinates(
-      place.place_name ?? `Place ${place.place_id}`,
-      String(place.place_id),
-    ),
+    summary: place.description?.trim() ?? "",
+    recommendReason: place.recommend_reason?.trim() || undefined,
+    badge: place.iconic_score == null
+      ? undefined
+      : place.iconic_score >= 0.7
+        ? "명소"
+        : place.iconic_score < 0.3
+          ? "히든"
+          : undefined,
+    coordinates: place.lat != null && place.lng != null
+      ? { lat: place.lat, lon: place.lng }
+      : resolvePlaceCoordinates(place.place_name ?? `Place ${place.place_id}`, String(place.place_id)),
   }));
 }
 

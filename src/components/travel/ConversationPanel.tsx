@@ -36,13 +36,13 @@ export function ConversationPanel({
       <div className="shell-card-body space-y-4">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-              Refine
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#FF7B59]">
+              Live conversation
             </p>
             <h2 className="section-title mt-1">일정을 더 다듬기</h2>
           </div>
-          <span className="inline-flex h-6 items-center rounded-full border border-[#E8E4DC] bg-white px-2.5 text-[11px] font-bold leading-none text-[#6B7280]">
-            Follow-up
+          <span className="inline-flex h-6 items-center rounded-full bg-[#6FCEF7]/15 px-2.5 text-[11px] font-bold leading-none text-[#268CC1]">
+            ⚡ LIVE
           </span>
         </div>
 
@@ -59,8 +59,8 @@ export function ConversationPanel({
                 <div
                   className={`chat-bubble whitespace-pre-wrap ${
                     message.role === "user"
-                      ? "chat-bubble-primary text-white"
-                      : "border border-base-300 bg-white text-slate-700"
+                      ? "border-0 bg-gradient-to-br from-[#FF7B59] to-[#FF6B6B] text-white shadow-[0_8px_20px_rgba(255,123,89,.2)]"
+                      : "border border-[#2D3436]/[0.06] bg-white text-[#4A5658] shadow-[0_4px_14px_rgba(45,52,54,.06)]"
                   }`}
                 >
                   {message.text || (message.role === "assistant" && isStreaming ? "..." : "")}

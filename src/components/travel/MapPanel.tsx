@@ -12,6 +12,20 @@ type MapPanelProps = {
   places: Place[];
   modeKey?: string;
   badgeLabel?: string;
+  expanded?: boolean;
+  selectedPlaceId?: string | null;
+  onPlaceSelect?: (placeId: string) => void;
+};
+
+type MapInstance = {
+  fitBounds: (bounds: unknown, padding?: number | unknown) => void;
+  panTo: (position: unknown) => void;
+};
+
+type MarkerEntry = {
+  marker: unknown;
+  position: unknown;
+  infoWindow: { open: (map: unknown, marker: unknown) => void; close: () => void };
 };
 
 // 명소: teal, 히든: orange, 없음: navy
@@ -57,14 +71,34 @@ function infoWindowHtml(place: Place): string {
   return `
     <div style="padding:10px 13px;min-width:150px;max-width:210px;font-family:'Noto Sans KR',sans-serif;">
       ${badgeHtml}
-      <strong style="display:block;font-size:13px;color:#1C2B4A;line-height:1.4;">${place.title}</strong>
-      <span style="display:block;margin-top:3px;font-size:11px;color:#9CA3AF;">${place.category}</span>
+      <strong style="display:block;font-size:13px;color:#1C2B4A;line-height:1.4;">${escapeHtml(place.title)}</strong>
+      <span style="display:block;margin-top:3px;font-size:11px;color:#9CA3AF;">${escapeHtml(place.category)}</span>
     </div>
   `;
 }
 
-export function MapPanel({ notes, places, modeKey = "nearby" }: MapPanelProps) {
+function escapeHtml(value: string) {
+  return value.replace(/[&<>'"]/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "'": "&#39;",
+    '"': "&quot;",
+  })[character] ?? character);
+}
+
+export function MapPanel({
+  notes,
+  places,
+  modeKey = "nearby",
+  expanded = false,
+  selectedPlaceId,
+  onPlaceSelect,
+}: MapPanelProps) {
   const mapElementRef = useRef<HTMLDivElement | null>(null);
+  const mapInstanceRef = useRef<MapInstance | null>(null);
+  const markerEntriesRef = useRef<Map<string, MarkerEntry>>(new Map());
+  const onPlaceSelectRef = useRef(onPlaceSelect);
   const [mapError, setMapError] = useState<string | null>(null);
   const [routeStatus, setRouteStatus] = useState<"idle" | "loading" | "done" | "osrm" | "fallback">("idle");
 
@@ -84,6 +118,10 @@ export function MapPanel({ notes, places, modeKey = "nearby" }: MapPanelProps) {
   const hiddenCount = useMemo(() => coordinatePlaces.filter((p) => p.badge === "히든").length, [coordinatePlaces]);
 
   useEffect(() => {
+    onPlaceSelectRef.current = onPlaceSelect;
+  }, [onPlaceSelect]);
+
+  useEffect(() => {
     const clientId = import.meta.env.VITE_NAVER_MAP_CLIENT_ID;
     const mapElement = mapElementRef.current;
 
@@ -94,19 +132,22 @@ export function MapPanel({ notes, places, modeKey = "nearby" }: MapPanelProps) {
     async function renderMap() {
       try {
         const maps = await loadNaverMapScript(clientId as string);
-        if (!maps || disposed || !mapElementRef.current) return;
+        if (!maps || disposed || !mapElement) return;
+        mapElement.replaceChildren();
 
         const fallbackCenter = new maps.LatLng(
           DEFAULT_RECOMMENDATION_COORDINATES.lat,
           DEFAULT_RECOMMENDATION_COORDINATES.lon,
         );
 
-        const map = new maps.Map(mapElementRef.current, {
+        const map = new maps.Map(mapElement, {
           center: fallbackCenter,
           zoom: coordinatePlaces.length > 1 ? 10 : 13,
           zoomControl: true,
           zoomControlOptions: { position: maps.Position.TOP_RIGHT },
         });
+        mapInstanceRef.current = map;
+        markerEntriesRef.current.clear();
 
         const bounds = new maps.LatLngBounds();
         const straightPath: unknown[] = [];   // 직선 fallback용
@@ -140,17 +181,30 @@ export function MapPanel({ notes, places, modeKey = "nearby" }: MapPanelProps) {
           });
 
           openInfoWindows.push(infoWindow);
+          markerEntriesRef.current.set(place.id, {
+            marker,
+            position: latLng,
+            infoWindow,
+          });
 
           maps.Event.addListener(marker, "click", () => {
             openInfoWindows.forEach((iw, i) => {
               if (i === index) iw.open(map, marker);
               else iw.close();
             });
+            onPlaceSelectRef.current?.(place.id);
           });
         });
 
         if (boundsCount > 0) {
           map.fitBounds(bounds, 60);
+        }
+
+        const selectedEntry = selectedPlaceId
+          ? markerEntriesRef.current.get(selectedPlaceId)
+          : undefined;
+        if (selectedEntry) {
+          selectedEntry.infoWindow.open(map, selectedEntry.marker);
         }
 
         setMapError(null);
@@ -209,21 +263,30 @@ export function MapPanel({ notes, places, modeKey = "nearby" }: MapPanelProps) {
 
     return () => {
       disposed = true;
+      mapInstanceRef.current = null;
+      markerEntriesRef.current.clear();
+      mapElement.replaceChildren();
     };
   }, [coordinatePlaces]);
+
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !selectedPlaceId) return;
+
+    const selectedEntry = markerEntriesRef.current.get(selectedPlaceId);
+    if (!selectedEntry) return;
+
+    markerEntriesRef.current.forEach(({ infoWindow }) => infoWindow.close());
+    selectedEntry.infoWindow.open(map, selectedEntry.marker);
+    map.panTo(selectedEntry.position);
+  }, [selectedPlaceId]);
 
   const hasClientId = Boolean(import.meta.env.VITE_NAVER_MAP_CLIENT_ID);
 
   return (
-    <div className="space-y-3 p-4">
-      {/* 이동 가이드 */}
-      <div className="rounded-[10px] bg-[#EBF6F4] p-3">
-        <p className="text-[11px] font-semibold uppercase tracking-widest text-[#2D9C8C]/70">이동 가이드</p>
-        <p className="mt-1 text-[13px] leading-relaxed text-[#1C2B4A]">{modeSummary}</p>
-      </div>
-
+    <div className={expanded ? "h-full" : "space-y-3 p-4"}>
       {/* 지도 */}
-      <div className="map-stage">
+      <div className={`map-stage ${expanded ? "h-[calc(100dvh-73px)] min-h-0 rounded-none border-0 md:h-[calc(100vh-145px)] md:rounded-2xl md:border" : ""}`}>
         <div ref={mapElementRef} className="h-full w-full" />
 
         {!hasClientId && (
@@ -251,7 +314,7 @@ export function MapPanel({ notes, places, modeKey = "nearby" }: MapPanelProps) {
       </div>
 
       {/* 범례 */}
-      {coordinatePlaces.length > 0 && (
+      {!expanded && coordinatePlaces.length > 0 && (
         <div className="flex flex-wrap items-center gap-3 text-[12px] text-[#6B7280]">
           <div className="flex items-center gap-1.5">
             <svg width="20" height="4" viewBox="0 0 20 4">
@@ -283,13 +346,13 @@ export function MapPanel({ notes, places, modeKey = "nearby" }: MapPanelProps) {
       )}
 
       {/* 노트 태그 */}
-      <div className="flex flex-wrap gap-1.5">
+      {!expanded && notes.length > 0 && <div className="flex flex-wrap gap-1.5">
         {notes.map((note) => (
           <span key={note} className="rounded-full border border-[#E8E4DC] bg-white px-3 py-1.5 text-[12px] text-[#6B7280]">
             {note}
           </span>
         ))}
-      </div>
+      </div>}
     </div>
   );
 }

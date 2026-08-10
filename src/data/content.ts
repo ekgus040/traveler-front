@@ -13,16 +13,17 @@ export const WEATHER_OPTIONS: TravelOption[] = [
 ];
 
 export const COMPANION_OPTIONS: TravelOption[] = [
-  { value: "family", label: "아이 동반 가족" },
-  { value: "couple", label: "연인" },
-  { value: "friends", label: "친구" },
-  { value: "solo", label: "혼자" },
+  { value: "solo", label: "🚶 혼자" },
+  { value: "couple", label: "💑 연인" },
+  { value: "family", label: "👨‍👩‍👧 가족" },
+  { value: "friends", label: "👯 친구" },
 ];
 
 export const PACE_OPTIONS: TravelOption[] = [
-  { value: "balanced", label: "균형형" },
-  { value: "fast", label: "짧고 빠르게" },
-  { value: "relaxed", label: "여유롭게" },
+  { value: "relaxed", label: "😌 차분히" },
+  { value: "balanced", label: "😊 적당히" },
+  { value: "fast", label: "⚡ 활기차게" },
+  { value: "energetic", label: "🔥 뜨겁게" },
 ];
 
 export const MOOD_OPTIONS: TravelOption[] = [
@@ -37,6 +38,7 @@ export const DEFAULT_TRAVEL_COMPOSER: TravelComposerState = {
   companion: "family",
   pace: "balanced",
   mood: "calm",
+  interest: "nature",
   startPoint: "서울 잠실",
   endPoint: "강릉 안목해변",
 };
@@ -237,10 +239,10 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     title: "누구와 떠나나요?",
     description: "추천 톤과 동선을 가장 크게 바꾸는 조건입니다.",
     choices: [
-      { value: "solo", label: "혼자" },
-      { value: "couple", label: "연인" },
-      { value: "friends", label: "친구" },
-      { value: "family", label: "가족" },
+      { value: "solo", label: "🚶 혼자" },
+      { value: "couple", label: "💑 연인" },
+      { value: "friends", label: "👯 친구" },
+      { value: "family", label: "👨‍👩‍👧 가족" },
     ],
   },
   {
@@ -249,9 +251,9 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     title: "어떤 템포가 좋나요?",
     description: "이동 속도와 장소 수를 조정합니다.",
     choices: [
-      { value: "fast", label: "짧고 빠르게" },
-      { value: "balanced", label: "적당히 균형 있게" },
-      { value: "relaxed", label: "여유롭게" },
+      { value: "fast", label: "⚡ 짧고 빠르게" },
+      { value: "balanced", label: "😊 적당히 균형 있게" },
+      { value: "relaxed", label: "😌 여유롭게" },
     ],
   },
   {
@@ -260,20 +262,9 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     title: "오늘 끌리는 분위기는?",
     description: "같은 지역이어도 전혀 다른 장소 조합이 나옵니다.",
     choices: [
-      { value: "fun", label: "활동적인 무드" },
-      { value: "calm", label: "차분한 무드" },
-      { value: "romantic", label: "분위기 있는 무드" },
-    ],
-  },
-  {
-    id: "weather",
-    step: "04",
-    title: "날씨는 어떤가요?",
-    description: "실내/실외 비중과 이동 수단 추천에 반영됩니다.",
-    choices: [
-      { value: "sunny", label: "맑음" },
-      { value: "cloudy", label: "흐림" },
-      { value: "rain", label: "비" },
+      { value: "fun", label: "🔥 활동적인 무드" },
+      { value: "calm", label: "🌿 차분한 무드" },
+      { value: "romantic", label: "✨ 분위기 있는 무드" },
     ],
   },
 ];

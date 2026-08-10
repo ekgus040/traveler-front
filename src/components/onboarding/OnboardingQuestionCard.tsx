@@ -56,10 +56,10 @@ function ChoiceButton({ choice, isSelected, onClick }: ChoiceButtonProps) {
       type="button"
       onClick={onClick}
       aria-pressed={isSelected}
-      className={`rounded-2xl border px-4 py-4 text-left transition ${
+      className={`rounded-[20px] border-2 px-5 py-5 text-left transition-all duration-300 ${
         isSelected
-          ? "border-primary bg-primary text-primary-content shadow-sm"
-          : "border-base-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-50"
+          ? "-translate-y-1 border-[#FF7B59] bg-gradient-to-br from-[#FFE8D6] to-[#FFCDB6] text-[#FF6B6B] shadow-[0_12px_30px_rgba(255,123,89,.2)]"
+          : "border-[#2D3436]/[0.08] bg-white text-[#2D3436] hover:border-[#FF7B59]/50 hover:bg-[#FFF6EC]"
       }`}
     >
       <span className="block text-sm font-semibold">{choice.label}</span>

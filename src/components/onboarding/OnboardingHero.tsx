@@ -11,19 +11,19 @@ export function OnboardingHero({
     <section className="shell-card overflow-hidden">
       <div className="shell-card-body relative gap-6">
         <div
-          className="absolute inset-x-6 top-0 h-24 rounded-b-[2rem] bg-gradient-to-r from-sky-100 via-white to-emerald-100"
+          className="absolute inset-x-6 top-0 h-28 rounded-b-[2rem] bg-gradient-to-r from-[#FFE8D6] via-[#FFF6EC] to-[#DDF5F1]"
           aria-hidden="true"
         />
         <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">
-              Cold Start
+              Three Questions
             </p>
             <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 lg:text-4xl">
-              몇 가지 취향만 고르면 여행 추천이 바로 시작됩니다.
+              딱 3가지 질문, 그게 전부예요.
             </h1>
             <p className="mt-3 text-base leading-7 text-slate-500">
-              초기 취향을 먼저 받아 결과의 톤, 동선, 장소 밀도를 빠르게 맞춥니다.
+              세 번의 선택이 당신만의 취향 지도가 됩니다. 날씨와 계절은 Traveler가 알아서 챙길게요.
             </p>
           </div>
 
