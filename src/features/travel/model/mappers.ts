@@ -27,7 +27,7 @@ export function mapBackendPlaces(
           : undefined,
     coordinates: place.lat != null && place.lng != null
       ? { lat: place.lat, lon: place.lng }
-      : resolvePlaceCoordinates(place.place_name ?? `Place ${place.place_id}`, String(place.place_id)),
+      : resolvePlaceCoordinates(place.place_name ?? `Place ${place.place_id}`),
   }));
 }
 
