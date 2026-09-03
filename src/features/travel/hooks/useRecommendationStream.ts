@@ -13,6 +13,7 @@ import type {
 } from "../../../types/domain";
 import type { ChatStreamPayload, RecommendedPlacePayload } from "../../../types/api";
 import { mapBackendPlaces } from "../model/mappers";
+import { extractStreamingText } from "../model/streamText";
 import { buildTravelPrompt, buildTravelUserPreview } from "../model/prompt";
 
 type UseRecommendationStreamParams = {
@@ -115,17 +116,9 @@ export function useRecommendationStream({
 
         if (payload.bot_message) {
           streamedJson += payload.bot_message;
-          setMessages((current) => {
-            const next = [...current];
-            const last = next[next.length - 1];
-            if (last?.role === "assistant") {
-              next[next.length - 1] = {
-                ...last,
-                text: `${last.text}${payload.bot_message}`,
-              };
-            }
-            return next;
-          });
+          // 원시 JSON이 채팅창에 노출되지 않도록 bot_message 값만 증분 추출해서 렌더한다.
+          const visibleText = extractStreamingText(streamedJson);
+          setMessages((current) => replaceLastAssistantText(current, visibleText));
         }
 
         if (payload.recommended_places.length > 0) {
@@ -138,7 +131,7 @@ export function useRecommendationStream({
 
           void enrichRecommendedPlaces(mergedPlaces).then((resolvedPlaces) => {
             setPlaces(mapBackendPlaces(resolvedPlaces, mode));
-            const botMessage = structured?.bot_message;
+            const botMessage = structured?.bot_message ?? extractStreamingText(streamedJson);
             if (botMessage) {
               setMessages((current) => replaceLastAssistantText(current, botMessage));
             }
