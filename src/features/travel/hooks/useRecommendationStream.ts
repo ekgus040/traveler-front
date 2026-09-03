@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_RECOMMENDATION_COORDINATES } from "../../../data/content";
 import { initialChats, mockBotMessages, mockPlaces } from "../../../data/mock";
-import { enrichRecommendedPlaces, openChatRecommendationStream } from "../../../api/traveler";
+import { enrichRecommendedPlaces, openChatRecommendationStream, reviseCourse } from "../../../api/traveler";
 
 const IS_MOCK = import.meta.env.VITE_MOCK_MODE === "true";
 import type {
@@ -32,6 +32,9 @@ export function useRecommendationStream({
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  // 코스 수정(/api/chat/revise) 응답에는 좌표가 없어서, 직전 코스의 좌표·설명을
+  // place_id 로 이어받아야 지도가 비지 않는다.
+  const lastPayloadRef = useRef<RecommendedPlacePayload[]>([]);
 
   const resetToModeSeed = useCallback(() => {
     eventSourceRef.current?.close();
@@ -39,6 +42,7 @@ export function useRecommendationStream({
     setStreamError(null);
     setMessages(IS_MOCK ? initialChats[mode] : []);
     setPlaces(IS_MOCK ? mockPlaces[mode] : []);
+    lastPayloadRef.current = [];
   }, [mode]);
 
   useEffect(() => {
@@ -130,6 +134,7 @@ export function useRecommendationStream({
           );
 
           void enrichRecommendedPlaces(mergedPlaces).then((resolvedPlaces) => {
+            lastPayloadRef.current = resolvedPlaces;
             setPlaces(mapBackendPlaces(resolvedPlaces, mode));
             const botMessage = structured?.bot_message ?? extractStreamingText(streamedJson);
             if (botMessage) {
@@ -148,6 +153,66 @@ export function useRecommendationStream({
           "mobility_rag 연결에 실패했습니다. 서버가 꺼져 있거나 CORS/SSE 구성이 맞지 않습니다.",
         );
       };
+    },
+    [mode, onPlacesResolved, sessionId],
+  );
+
+  /**
+   * 이미 만들어진 코스를 후속 발화로 수정한다 (mobility_rag Sprint 7).
+   *
+   * startRecommendation() 은 코스를 통째로 다시 만들지만, 이쪽은 사용자가
+   * 유지하길 원한 장소를 그대로 두고 바뀐 부분만 반영한다.
+   */
+  const reviseRecommendation = useCallback(
+    async (userMessage: string) => {
+      const trimmed = userMessage.trim();
+      if (!trimmed) return;
+
+      setStreamError(null);
+      setIsStreaming(true);
+      setMessages((current) => [
+        ...current,
+        { id: `user-revise-${Date.now()}`, role: "user", text: trimmed },
+        { id: `assistant-revise-${Date.now()}`, role: "assistant", text: "" },
+      ]);
+
+      try {
+        const revised = await reviseCourse(sessionId, trimmed);
+
+        // 응답에 좌표가 없으므로 직전 코스에서 place_id 로 이어받는다.
+        const previousById = new Map(
+          lastPayloadRef.current.map((place) => [String(place.place_id), place]),
+        );
+        const merged: RecommendedPlacePayload[] = revised.recommended_places.map((place) => {
+          const previous = previousById.get(String(place.place_id));
+          return {
+            ...previous,
+            place_id: String(place.place_id),
+            visit_sequence: place.visit_sequence,
+            place_name: place.place_name ?? previous?.place_name ?? null,
+          };
+        });
+
+        // 새로 추가된 장소는 좌표가 없으므로 기존 보강 경로를 그대로 태운다.
+        const resolved = await enrichRecommendedPlaces(merged);
+        lastPayloadRef.current = resolved;
+        setPlaces(mapBackendPlaces(resolved, mode));
+        setMessages((current) =>
+          replaceLastAssistantText(current, revised.bot_message || "코스를 수정했어요."),
+        );
+        void onPlacesResolved?.();
+      } catch (error) {
+        // 404 = 이 세션으로 /api/chat 을 먼저 호출한 적이 없거나 서버가 재시작된 경우.
+        const notFound = error instanceof Error && error.message.includes("404");
+        setMessages((current) => replaceLastAssistantText(current, ""));
+        setStreamError(
+          notFound
+            ? "수정할 코스를 찾지 못했어요. 새 대화로 코스를 다시 만들어 주세요."
+            : "코스 수정에 실패했어요. 잠시 후 다시 시도해 주세요.",
+        );
+      } finally {
+        setIsStreaming(false);
+      }
     },
     [mode, onPlacesResolved, sessionId],
   );
@@ -174,6 +239,8 @@ export function useRecommendationStream({
     setMessages,
     setPlaces,
     startRecommendation,
+    reviseRecommendation,
+    canRevise: places.length > 0,
     resetToModeSeed,
   };
 }

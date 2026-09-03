@@ -18,6 +18,21 @@ export type ChatStreamPayload = {
   recommended_places: RecommendedPlacePayload[];
 };
 
+/**
+ * POST /api/chat/revise 응답 (mobility_rag Sprint 7).
+ *
+ * `/api/chat` 과 달리 스트리밍이 아니라 단발 JSON 이고,
+ * 좌표(lat/lng)가 없다 — 이미 화면에 있는 코스에서 이어받아야 한다.
+ */
+export type ReviseCoursePayload = {
+  bot_message: string;
+  recommended_places: Array<{
+    place_id: string;
+    visit_sequence: number;
+    place_name?: string | null;
+  }>;
+};
+
 export type SessionVisitedResponse = {
   session_id: string;
   visited: string[];

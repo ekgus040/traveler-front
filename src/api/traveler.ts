@@ -4,6 +4,7 @@ import type {
   SessionPrefsResponse,
   HealthResponse,
   RecommendedPlacePayload,
+  ReviseCoursePayload,
 } from "../types/api";
 import type { TravelChatRequest, TravelCoordinates } from "../types/domain";
 const IS_MOCK = import.meta.env.VITE_MOCK_MODE === "true";
@@ -63,6 +64,20 @@ export async function getSessionPrefs(sessionId: string) {
 
 export async function getHealth() {
   return request<HealthResponse>("/health");
+}
+
+/**
+ * 이미 만들어진 코스를 후속 발화로 수정한다 (mobility_rag Sprint 7).
+ *
+ * `/api/chat` 은 SSE 지만 이쪽은 단발 JSON 이다.
+ * 서버가 세션별 "지금 코스"를 메모리에 들고 있어서, 해당 session_id 로
+ * `/api/chat` 을 먼저 호출한 적이 없거나 서버가 재시작되면 404 를 준다.
+ */
+export async function reviseCourse(sessionId: string, userMessage: string) {
+  return request<ReviseCoursePayload>("/api/chat/revise", {
+    method: "POST",
+    body: JSON.stringify({ session_id: sessionId, user_message: userMessage }),
+  });
 }
 
 export async function enrichRecommendedPlaces(
