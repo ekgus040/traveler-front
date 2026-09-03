@@ -57,6 +57,8 @@ function App() {
     isStreaming,
     streamError,
     startRecommendation,
+    reviseRecommendation,
+    canRevise,
     resetToModeSeed,
   } = useRecommendationStream({
     mode: selectedMode,
@@ -124,10 +126,19 @@ function App() {
   }
 
   function handleRefineSubmit() {
-    if (!refineDraft.trim()) return;
-    const nextComposer = { ...composer, query: refineDraft.trim() };
-    setComposer(nextComposer);
+    const message = refineDraft.trim();
+    if (!message) return;
     setRefineDraft("");
+
+    // 이미 코스가 있으면 통째로 다시 만들지 않고 바뀐 부분만 반영한다
+    // (mobility_rag Sprint 7, POST /api/chat/revise).
+    if (canRevise) {
+      void reviseRecommendation(message);
+      return;
+    }
+
+    const nextComposer = { ...composer, query: message };
+    setComposer(nextComposer);
     startRecommendation(nextComposer);
   }
 
