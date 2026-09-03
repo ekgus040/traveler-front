@@ -1,6 +1,11 @@
 node_modules
 dist
+
+# 환경변수 — .env.example 만 커밋한다
 .env
+.env.*
+!.env.example
+
 *.tsbuildinfo
 vite.config.js
 vite.config.d.ts
