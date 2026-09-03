@@ -256,17 +256,17 @@ function requestPosition(options: PositionOptions): Promise<{ lat: number; lon: 
 
 function getLocationErrorMessage(error: unknown) {
   if (!window.isSecureContext) {
-    return "현재 주소에서는 위치 기능을 사용할 수 없습니다. http://127.0.0.1:4173으로 접속해 주세요.";
+    return "보안 연결에서만 위치를 사용할 수 있습니다. https:// 주소로 접속해 주세요.";
   }
   if (isGeolocationError(error)) {
     if (error.code === 1) {
       return "위치 권한이 차단돼 있습니다. 주소창의 사이트 설정에서 위치를 '허용'으로 변경한 뒤 새로고침해 주세요.";
     }
     if (error.code === 3) {
-      return "GPS 응답 시간이 초과됐습니다. macOS 위치 서비스가 켜져 있는지 확인한 뒤 다시 시도해 주세요.";
+      return "GPS 응답 시간이 초과됐습니다. 기기의 위치 서비스가 켜져 있는지 확인한 뒤 다시 시도해 주세요.";
     }
   }
-  return "현재 위치를 가져오지 못했습니다. 브라우저와 macOS의 위치 서비스 설정을 확인해 주세요.";
+  return "현재 위치를 가져오지 못했습니다. 브라우저와 기기의 위치 서비스 설정을 확인해 주세요.";
 }
 
 function isGeolocationError(error: unknown): error is GeolocationPositionError {
