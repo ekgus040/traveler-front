@@ -11,6 +11,21 @@ const IS_MOCK = import.meta.env.VITE_MOCK_MODE === "true";
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
+/**
+ * TourAPI 장소 보강(`/tour-place`)과 네이버 Directions(`/naver-directions/*`) 프록시의 기준 주소.
+ *
+ * 두 경로는 개발 서버에서는 vite.config.ts 의 미들웨어가, 배포 환경에서는 백엔드가 제공한다.
+ * 개발 중에는 상대경로(빈 문자열)로 두어 vite 미들웨어를 그대로 쓰고,
+ * 빌드 산출물에서는 API_BASE_URL 을 붙여 백엔드로 보낸다.
+ * 프록시를 백엔드가 아닌 다른 곳에 두는 경우 VITE_PROXY_BASE_URL 로 덮어쓴다. (front#3)
+ */
+const PROXY_BASE_URL =
+  import.meta.env.VITE_PROXY_BASE_URL ?? (import.meta.env.DEV ? "" : API_BASE_URL);
+
+export function buildProxyUrl(path: string) {
+  return `${PROXY_BASE_URL}${path}`;
+}
+
 export function buildChatUrl(params: TravelChatRequest) {
   const url = new URL("/api/chat", API_BASE_URL);
   url.searchParams.set("user_message", params.userMessage);
@@ -59,7 +74,7 @@ export async function enrichRecommendedPlaces(
     }
 
     try {
-      const response = await fetch(`/tour-place?contentId=${encodeURIComponent(place.place_id)}`);
+      const response = await fetch(buildProxyUrl(`/tour-place?contentId=${encodeURIComponent(place.place_id)}`));
       if (!response.ok) return place;
 
       const detail = await response.json() as Partial<RecommendedPlacePayload>;
@@ -100,7 +115,7 @@ export async function getRouteNaver(coordinates: TravelCoordinates[]): Promise<[
   }
 
   try {
-    const resp = await fetch(`/naver-directions/driving?${params.toString()}`);
+    const resp = await fetch(buildProxyUrl(`/naver-directions/driving?${params.toString()}`));
     if (!resp.ok) return [];
 
     const data = await resp.json() as { route?: Record<string, Array<{ path: [number, number][] }>> };

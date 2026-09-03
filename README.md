@@ -25,6 +25,7 @@ Node 20.19 이상 필요. `npm install` 대신 **`npm ci`** 를 쓴다(락파일
 | `VITE_API_BASE_URL` | 백엔드 주소 (기본 `http://localhost:8000`) | O |
 | `VITE_MOCK_MODE` | `true` 면 백엔드 없이 목업 데이터로 동작 | O |
 | `VITE_NAVER_MAP_CLIENT_ID` | 네이버 지도 JS SDK 키 | O |
+| `VITE_PROXY_BASE_URL` | 프록시 기준 주소. 비우면 dev=상대경로 / build=`VITE_API_BASE_URL` | O |
 | `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` | 네이버 클라우드 Directions API (dev 프록시 전용) | X |
 | `KORWITHSERVICE_API_KEY` | 한국관광공사 TourAPI (dev 프록시 전용) | X |
 
@@ -42,8 +43,10 @@ Node 20.19 이상 필요. `npm install` 대신 **`npm ci`** 를 쓴다(락파일
 
 **`npm run build` 산출물에는 두 경로가 존재하지 않는다.** 그대로 배포하면
 `enrichRecommendedPlaces()` 와 `getRouteNaver()` 가 404 를 받아 장소명·마커·경로선이 사라진다.
-배포 전에 동일한 엔드포인트를 서버(FastAPI 라우터 또는 리버스 프록시)에 마련하고
-호출 경로를 `VITE_API_BASE_URL` 기준으로 바꿔야 한다. → front#3
+
+프론트는 `buildProxyUrl()` 로 호출 주소를 만든다. 개발 중에는 상대경로라 위 미들웨어가 응답하고,
+빌드 산출물에서는 `VITE_API_BASE_URL`(또는 `VITE_PROXY_BASE_URL`) 이 앞에 붙는다.
+**따라서 배포 서버가 같은 경로 두 개를 제공해야 한다.** → front#3
 
 ## 디렉터리
 
