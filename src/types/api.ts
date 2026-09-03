@@ -1,5 +1,5 @@
 export type RecommendedPlacePayload = {
-  place_id: number;
+  place_id: string;
   visit_sequence: number;
   place_name?: string | null;
   duration_min?: number | null;

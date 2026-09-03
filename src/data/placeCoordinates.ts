@@ -21,21 +21,14 @@ const titleCoordinates: Record<string, TravelCoordinates> = {
   "석굴암": { lat: 35.7949, lon: 129.3492 },
 };
 
-const placeIdCoordinates: Record<string, TravelCoordinates> = {
-  "1": { lat: 37.7719, lon: 128.9476 },
-  "2": { lat: 37.8432, lon: 128.8762 },
-  "3": { lat: 37.8099, lon: 128.9034 },
-  "4": { lat: 37.8917, lon: 128.824 },
-};
-
-export function resolvePlaceCoordinates(title: string, sourcePlaceId?: string) {
-  if (titleCoordinates[title]) {
-    return titleCoordinates[title];
-  }
-
-  if (sourcePlaceId && placeIdCoordinates[sourcePlaceId]) {
-    return placeIdCoordinates[sourcePlaceId];
-  }
-
-  return undefined;
+/**
+ * 목업 데이터용 좌표 표. 이름이 정확히 일치할 때만 좌표를 돌려주고,
+ * 모르는 장소에는 undefined 를 반환한다(= 지도에 마커를 찍지 않는다).
+ *
+ * 과거에는 place_id "1"~"4" 를 강릉 좌표로 매핑하는 표가 있었으나,
+ * 백엔드 폴백이 place_id 기본값 "1" 을 쓰기 때문에 경주 추천 결과가
+ * 강릉에 찍히는 사고가 날 수 있어 제거했다. 좌표는 백엔드가 채운다(#27).
+ */
+export function resolvePlaceCoordinates(title: string) {
+  return titleCoordinates[title];
 }

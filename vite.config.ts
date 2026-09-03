@@ -96,7 +96,7 @@ function tourPlacePlugin(apiKey: string): Plugin {
           }
 
           const payload = JSON.stringify({
-            place_id: Number(item.contentid ?? contentId),
+            place_id: String(item.contentid ?? contentId),
             place_name: item.title ?? null,
             category: item.lclsSystm1 ?? null,
             lat: toFiniteNumber(item.mapy),
