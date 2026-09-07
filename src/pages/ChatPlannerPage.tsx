@@ -10,7 +10,7 @@ import RecommendationReasonPanel from "../components/travel/RecommendationReason
 import { modeLabels } from "../data/content";
 import type { ChatMessage, Place, TravelComposerState, TravelMode, TravelOption } from "../types/domain";
 
-type ChatStep = "interest" | "companion" | "pace" | "route" | "request" | "result";
+type ChatStep = "interest" | "companion" | "pace" | "region" | "route" | "request" | "result";
 
 type ChatPlannerPageProps = {
   selectedMode: TravelMode;
@@ -45,9 +45,29 @@ const STEP_LABEL: Record<Exclude<ChatStep, "result">, string> = {
   interest: "관심사",
   companion: "동행",
   pace: "템포",
+  region: "지역",
   route: "이동 경로",
   request: "추가 요청",
 };
+
+/**
+ * 지역 보기.
+ * 백엔드 검색은 "안동 대표 명소와 볼거리" 같은 일반 문장에는 엉뚱한 지역을 섞어 준다.
+ * 실측으로 결과가 정확했던 문장을 지역마다 미리 붙여두고, 사용자는 그 문장을
+ * 다음 단계에서 고쳐 쓸 수 있게 한다 (2026-09-08 실측 기준).
+ */
+const REGION_SUGGESTIONS: Array<{ region: string; query: string }> = [
+  { region: "강릉", query: "강릉 해변과 경포호 명소 코스" },
+  { region: "부산", query: "부산 바다와 도시 야경을 함께 보는 코스" },
+  { region: "제주", query: "제주 자연 명소와 바다 코스" },
+];
+
+/** 취향 질문 다음에 어디로 갈지 물어봐야 하는 모드 */
+function stepAfterPace(mode: TravelMode): ChatStep {
+  if (mode === "longdist") return "route";
+  if (mode === "remote") return "region";
+  return "request";
+}
 
 export function ChatPlannerPage({
   selectedMode,
@@ -82,7 +102,7 @@ export function ChatPlannerPage({
       onComposerChange("companion", profile.companion);
       onComposerChange("pace", profile.pace);
       setRestoredProfile(true);
-      setStep(selectedMode === "longdist" ? "route" : "request");
+      setStep(stepAfterPace(selectedMode));
     } catch {
       sessionStorage.removeItem(PROFILE_STORAGE_KEY);
     }
@@ -123,7 +143,17 @@ export function ChatPlannerPage({
         pace: option.value,
       }),
     );
-    answer(STEP_LABEL.pace, option.label, selectedMode === "longdist" ? "route" : "request");
+    answer(STEP_LABEL.pace, option.label, stepAfterPace(selectedMode));
+  }
+
+  function submitRegion(value: string, presetQuery?: string) {
+    const region = value.trim();
+    if (!region) return;
+    onComposerChange("endPoint", region);
+    // 지역명만 넘기면 백엔드가 엉뚱한 지역을 섞어 주므로,
+    // 다음 단계의 요청 문장을 지역이 들어간 문장으로 미리 채워 둔다.
+    onComposerChange("query", presetQuery ?? `${region} 대표 명소와 맛집을 엮은 코스`);
+    answer(STEP_LABEL.region, region, "request");
   }
 
   function submitRoute() {
@@ -145,7 +175,7 @@ export function ChatPlannerPage({
     setStep("interest");
   }
 
-  const totalSteps = selectedMode === "longdist" ? 5 : 4;
+  const totalSteps = selectedMode === "nearby" ? 4 : 5;
   const doneSteps = Math.min(answers.length, totalSteps);
   const progress = step === "result" ? 100 : Math.round((doneSteps / totalSteps) * 100);
   const conversationMessages = messages.slice(1);
@@ -250,6 +280,42 @@ export function ChatPlannerPage({
         </QuestionCard>
       ) : null}
 
+      {step === "region" ? (
+        <QuestionCard title="어느 지역으로 가세요?" hint="다음 단계에서 요청 문장이 미리 채워집니다. 가고 싶은 곳을 덧붙일수록 결과가 정확해져요.">
+          <div className="mb-3 flex flex-wrap gap-2">
+            {REGION_SUGGESTIONS.map((item) => (
+              <button
+                key={item.region}
+                type="button"
+                className="chip"
+                onClick={() => submitRegion(item.region, item.query)}
+              >
+                {item.region}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              className="form-input"
+              value={composer.endPoint}
+              onChange={(event) => onComposerChange("endPoint", event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.nativeEvent.isComposing) submitRegion(composer.endPoint);
+              }}
+              placeholder="직접 입력 (예: 속초, 남해)"
+            />
+            <button
+              type="button"
+              className="btn btn-primary shrink-0 px-5"
+              disabled={!composer.endPoint.trim()}
+              onClick={() => submitRegion(composer.endPoint)}
+            >
+              다음
+            </button>
+          </div>
+        </QuestionCard>
+      ) : null}
+
       {step === "route" ? (
         <QuestionCard title="어디에서 어디로 가시나요?" hint="경로 위 휴게소와 식사 지점을 함께 배치합니다.">
           <div className="grid gap-2 sm:grid-cols-[1fr_auto_1fr]">
@@ -281,7 +347,7 @@ export function ChatPlannerPage({
       {step === "request" ? (
         <QuestionCard
           title="더 원하는 조건이 있나요?"
-          hint="비워두고 넘어가도 앞에서 고른 조건으로 코스를 만듭니다."
+          hint="구체적으로 적을수록 결과가 정확해집니다. 장소 이름이나 분위기를 덧붙여 보세요."
         >
           <textarea
             autoFocus
@@ -292,15 +358,8 @@ export function ChatPlannerPage({
             placeholder="예: 주차 편한 곳 위주로, 점심은 국수집"
           />
           <div className="mt-3 flex gap-2">
-            <button
-              type="button"
-              className="btn btn-outline flex-1 py-3"
-              onClick={() => {
-                onComposerChange("query", "");
-                submitRequest();
-              }}
-            >
-              건너뛰기
+            <button type="button" className="btn btn-outline flex-1 py-3" onClick={submitRequest}>
+              이대로 만들기
             </button>
             <button type="button" className="btn btn-primary flex-[2] py-3" onClick={submitRequest}>
               코스 만들기

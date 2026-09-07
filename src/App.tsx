@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import Navigation from "lucide-react/dist/esm/icons/navigation.mjs";
 import {
   COMPANION_OPTIONS,
@@ -15,11 +15,6 @@ import HomePage from "./pages/HomePage";
 import ResultsPage from "./pages/ResultsPage";
 import type { TravelComposerState, TravelMode } from "./types/domain";
 
-const navItems = [
-  { to: "/", label: "홈" },
-  { to: "/planner", label: "코스 만들기" },
-  { to: "/course/demo", label: "내 코스" },
-];
 
 type OnboardingSelections = Record<string, string>;
 
@@ -188,20 +183,6 @@ function App() {
             </div>
             <span className="brand-name">Traveler</span>
           </div>
-
-          {/* Nav */}
-          <nav className="header-nav">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === "/"}
-                className={({ isActive }) => `header-link ${isActive ? "is-active" : ""}`}
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
 
           {/* Actions */}
           <div className="header-actions">
