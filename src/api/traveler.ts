@@ -9,8 +9,19 @@ import type {
 import type { TravelChatRequest, TravelCoordinates } from "../types/domain";
 const IS_MOCK = import.meta.env.VITE_MOCK_MODE === "true";
 
+/**
+ * ⚠️ `??` 가 아니라 `||` 인 이유:
+ * VITE_API_BASE_URL 이 **빈 문자열**로 빌드된 적이 있는데(`??` 는 "" 를 통과시킨다),
+ * 그러면 아래 `new URL(path, API_BASE_URL)` 이 전부
+ * `TypeError: Invalid base URL` 로 죽는다 — 요청이 나가기도 전에.
+ * 배포본에서 채팅·세션 호출이 통째로 죽고 네트워크 탭엔 아무 흔적도 안 남아
+ * 원인을 찾기 어려웠다(2026-09-07). 빈 값이면 반드시 폴백하도록 `||` 를 쓴다.
+ * 배포 환경 폴백이 same-origin 인 이유: CloudFront 가 정적 파일과 /api/* 를
+ * 같은 도메인에서 서빙하므로 별도 주소가 필요 없다.
+ */
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.DEV ? "http://localhost:8000" : window.location.origin);
 
 /**
  * TourAPI 장소 보강(`/tour-place`)과 네이버 Directions(`/naver-directions/*`) 프록시의 기준 주소.
@@ -21,7 +32,7 @@ const API_BASE_URL =
  * 프록시를 백엔드가 아닌 다른 곳에 두는 경우 VITE_PROXY_BASE_URL 로 덮어쓴다. (front#3)
  */
 const PROXY_BASE_URL =
-  import.meta.env.VITE_PROXY_BASE_URL ?? (import.meta.env.DEV ? "" : API_BASE_URL);
+  import.meta.env.VITE_PROXY_BASE_URL || (import.meta.env.DEV ? "" : API_BASE_URL);
 
 export function buildProxyUrl(path: string) {
   return `${PROXY_BASE_URL}${path}`;
