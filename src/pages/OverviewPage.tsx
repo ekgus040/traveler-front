@@ -57,21 +57,22 @@ export function OverviewPage({
   return (
     <div className="-mt-10 -mx-6">
       {/* ── Hero ── */}
-      <section className="relative flex min-h-[580px] items-center overflow-hidden bg-gradient-to-br from-[#FFF6EC] via-[#FFE8D6] to-[#DDF5F1]">
+      <section className="relative flex min-h-[440px] items-center overflow-hidden bg-gradient-to-br from-[#FFF6EC] via-[#FFE8D6] to-[#DDF5F1] md:min-h-[580px]">
         <div className="absolute -left-24 -top-32 h-[430px] w-[430px] rounded-full bg-[radial-gradient(circle,rgba(255,217,61,.55),rgba(255,123,89,.12)_48%,transparent_70%)]" />
-        <div className="absolute right-[8%] top-[14%] h-44 w-64 rounded-full bg-white/55 blur-[2px]" />
-        <div className="absolute bottom-12 right-[10%] text-[150px] opacity-80 drop-shadow-[0_20px_30px_rgba(45,52,54,.15)]">🚗</div>
+        <div className="absolute right-[8%] top-[14%] hidden h-44 w-64 rounded-full bg-white/55 blur-[2px] md:block" />
+        <div className="pointer-events-none absolute bottom-6 right-[4%] text-[72px] opacity-70 drop-shadow-[0_20px_30px_rgba(45,52,54,.15)] sm:text-[100px] md:bottom-12 md:right-[10%] md:text-[150px] md:opacity-80">🚗</div>
         <svg className="absolute bottom-0 left-0 h-32 w-full opacity-50" viewBox="0 0 1200 130" preserveAspectRatio="none">
           <path d="M0 95 Q260 55 530 100 T1200 72" fill="none" stroke="#FF7B59" strokeWidth="3" strokeDasharray="14 12" />
         </svg>
-        <div className="relative mx-auto w-full max-w-[1200px] px-6 py-24">
+        <div className="relative mx-auto w-full max-w-[1200px] px-6 py-14 md:py-24">
           <div className="max-w-[580px]">
             <span className="mb-5 inline-flex rounded-full bg-white/75 px-4 py-2 text-[12px] font-bold text-[#FF7B59] shadow-sm">Drive · Plan · Explore</span>
-            <h1 className="mb-5 text-[48px] font-extrabold leading-[1.15] tracking-[-0.04em] text-[#2D3436] md:text-[62px]">
-              이동과 여행을 하나로.<br /><span className="text-[#FF7B59]">검색하지 않아도 완성되는 코스.</span>
+            <h1 className="mb-5 text-[30px] font-extrabold leading-[1.2] tracking-[-0.03em] text-[#2D3436] sm:text-[40px] md:text-[62px] md:leading-[1.15] md:tracking-[-0.04em]">
+              이동과 여행을 하나로.<br />
+              <span className="text-[#FF7B59]">검색하지 않아도 완성되는 코스.</span>
             </h1>
-            <p className="mb-8 text-[16px] leading-[1.8] text-[#4A5658]">
-              세 가지 드라이브 모드와 AI 큐레이션으로 출발부터 귀가까지,<br />
+            <p className="mb-8 text-[15px] leading-[1.7] text-[#4A5658] md:text-[16px] md:leading-[1.8]">
+              세 가지 드라이브 모드와 AI 큐레이션으로 출발부터 귀가까지,<br className="hidden md:inline" />{" "}
               날씨·방문 이력·취향을 반영한 나만의 여행 코스를 만듭니다.
             </p>
 
