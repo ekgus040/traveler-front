@@ -31,12 +31,10 @@ export function ItineraryPanel({
   return (
     <section>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-[16px] font-bold text-[#1C2B4A]">
+        <h2 className="text-[17px] font-bold tracking-[-0.02em] text-ink">
           코스 상세 일정
           {places.length > 0 && (
-            <span className="ml-2 text-[13px] font-normal text-[#9CA3AF]">
-              총 {places.length}곳
-            </span>
+            <span className="ml-2 text-[13px] font-medium text-muted">총 {places.length}곳</span>
           )}
         </h2>
         {onSaveVisited && (
@@ -44,7 +42,7 @@ export function ItineraryPanel({
             type="button"
             disabled={!canSaveVisited || isSavingVisited}
             onClick={onSaveVisited}
-            className="w-full rounded-[12px] bg-[#F07A3B] px-4 py-3 text-[13px] font-bold text-white transition-colors hover:bg-[#E06928] disabled:opacity-50 sm:w-auto sm:py-2"
+            className="btn btn-outline w-full sm:w-auto"
           >
             {isSavingVisited ? "저장 중..." : saveLabel}
           </button>
@@ -52,8 +50,8 @@ export function ItineraryPanel({
       </div>
 
       {visitedItems.length > 0 && (
-        <div className="mb-4 rounded-[12px] bg-[#EBF6F4] p-4">
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-widest text-[#2D9C8C]">저장된 기록</p>
+        <div className="mb-4 rounded-[12px] border border-line bg-surface p-4">
+          <p className="mb-2 text-[13px] font-semibold text-muted">저장된 기록</p>
           <VisitedBadgeList
             items={visitedItems}
             itemPrefix={visitedItemPrefix}
@@ -74,16 +72,14 @@ export function ItineraryPanel({
             />
           ))
         ) : (
-          <div className="rounded-[14px] border border-dashed border-[#E8E4DC] bg-[#F9F7F2] p-8 text-center">
-            <p className="text-[14px] text-[#9CA3AF]">{emptyPlacesText}</p>
+          <div className="rounded-[14px] border border-dashed border-line-strong bg-surface p-10 text-center">
+            <p className="text-[14px] text-muted">{emptyPlacesText}</p>
           </div>
         )}
       </div>
 
       {places.length > 0 && (
-        <div className="mt-4 rounded-[14px] border border-[#E8E4DC] bg-[#F0EDE8] p-4 text-center sm:p-6">
-          <p className="text-[13px] text-[#6B7280]">이번 추천 코스의 전체 일정이에요</p>
-        </div>
+        <p className="mt-4 text-center text-[13px] text-muted">이번 추천 코스의 전체 일정입니다.</p>
       )}
     </section>
   );

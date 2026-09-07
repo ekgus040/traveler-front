@@ -1,27 +1,24 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import Navigation from "lucide-react/dist/esm/icons/navigation.mjs";
 import {
   COMPANION_OPTIONS,
   DEFAULT_TRAVEL_COMPOSER,
-  MOOD_OPTIONS,
   PACE_OPTIONS,
-  WEATHER_OPTIONS,
   modeCards,
-  modeLabels,
 } from "./data/content";
 import { useRecommendationStream } from "./features/travel/hooks/useRecommendationStream";
 import { useTravelSession } from "./features/travel/hooks/useTravelSession";
 import ChatPlannerPage from "./pages/ChatPlannerPage";
 import OnboardingPage from "./pages/OnboardingPage";
-import OverviewPage from "./pages/OverviewPage";
+import HomePage from "./pages/HomePage";
 import ResultsPage from "./pages/ResultsPage";
 import type { TravelComposerState, TravelMode } from "./types/domain";
 
 const navItems = [
   { to: "/", label: "홈" },
-  { to: "/planner", label: "여행 계획" },
-  { to: "/course/demo", label: "추천 코스" },
+  { to: "/planner", label: "코스 만들기" },
+  { to: "/course/demo", label: "내 코스" },
 ];
 
 type OnboardingSelections = Record<string, string>;
@@ -31,6 +28,9 @@ function App() {
   const [selectedMode, setSelectedMode] = useState<TravelMode>("nearby");
   const [composer, setComposer] = useState<TravelComposerState>(DEFAULT_TRAVEL_COMPOSER);
   const [refineDraft, setRefineDraft] = useState("");
+  // 홈에서 바로 추천을 시작할 때, 모드 변경이 반영된 뒤 실행되도록 한 틱 미룬다.
+  const [pendingStart, setPendingStart] = useState<TravelComposerState | null>(null);
+  const [autoStartToken, setAutoStartToken] = useState(0);
   const [onboardingSelections, setOnboardingSelections] = useState<OnboardingSelections>({
     companion: DEFAULT_TRAVEL_COMPOSER.companion,
     pace: DEFAULT_TRAVEL_COMPOSER.pace,
@@ -40,7 +40,6 @@ function App() {
 
   const {
     sessionId,
-    visitedIds,
     isSavingVisited,
     sessionError,
     prefs,
@@ -76,20 +75,6 @@ function App() {
   );
   const combinedError = streamError ?? sessionError;
 
-  const streamStatusLabel = combinedError
-    ? "연결 이슈"
-    : isStreaming
-      ? "생성 중"
-      : canSaveVisited
-        ? "추천 준비 완료"
-        : "추천 대기 중";
-
-  const summaryTags = [
-    `모드 ${modeLabels[selectedMode]}`,
-    `날씨 ${WEATHER_OPTIONS.find((o) => o.value === composer.weather)?.label ?? composer.weather}`,
-    `동행 ${COMPANION_OPTIONS.find((o) => o.value === composer.companion)?.label ?? composer.companion}`,
-    `분위기 ${MOOD_OPTIONS.find((o) => o.value === composer.mood)?.label ?? composer.mood}`,
-  ];
 
   function updateComposer<K extends keyof TravelComposerState>(
     key: K,
@@ -109,12 +94,42 @@ function App() {
     }));
   }
 
+  useEffect(() => {
+    if (!pendingStart) return;
+    setPendingStart(null);
+    void startRecommendation(pendingStart);
+  }, [pendingStart, startRecommendation]);
+
   function handleGenerate() {
     startRecommendation(composer);
   }
 
-  function handleModeStart(mode: TravelMode) {
+  function handleOpenPlanner(mode: TravelMode) {
     setSelectedMode(mode);
+    void navigate("/planner");
+  }
+
+  /**
+   * 홈 검색바·프리셋: 곧바로 추천을 실행한다.
+   * 고르지 않은 취향은 넘기지 않는다 — 기본값을 실어보내면
+   * 요청과 무관한 조건(가족/자연 등)으로 추천이 나온다.
+   */
+  function handleQuickStart(
+    mode: TravelMode,
+    query: string,
+    route?: { startPoint: string; endPoint: string },
+  ) {
+    const nextComposer: TravelComposerState = {
+      ...DEFAULT_TRAVEL_COMPOSER,
+      query,
+      startPoint: route?.startPoint ?? "",
+      endPoint: route?.endPoint ?? "",
+    };
+    setSelectedMode(mode);
+    setComposer(nextComposer);
+    setRefineDraft("");
+    setAutoStartToken((current) => current + 1);
+    setPendingStart(nextComposer);
     void navigate("/planner");
   }
 
@@ -169,7 +184,7 @@ function App() {
           {/* Logo */}
           <div className="brand-block" onClick={() => void navigate("/")}>
             <div className="brand-mark">
-              <Navigation size={15} className="text-white" />
+              <Navigation size={14} className="text-white" />
             </div>
             <span className="brand-name">Traveler</span>
           </div>
@@ -190,23 +205,35 @@ function App() {
 
           {/* Actions */}
           <div className="header-actions">
-            <div className="hidden items-center gap-2 text-[11px] text-[#6B7280] lg:flex">
-              <span className={`h-2 w-2 rounded-full ${serviceStatus === "online" ? "bg-emerald-500" : serviceStatus === "offline" ? "bg-red-500" : "bg-amber-400"}`} />
-              {serviceStatus === "online" ? `API 연결 · DB ${redisStatus === "connected" ? "정상" : "미연결"}` : serviceStatus === "offline" ? "API 연결 안 됨" : "API 확인 중"}
+            <div className="hidden items-center gap-1.5 text-[12px] text-muted lg:flex">
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  serviceStatus === "online"
+                    ? "bg-[#0F9960]"
+                    : serviceStatus === "offline"
+                      ? "bg-[#E5484D]"
+                      : "bg-[#E8A33D]"
+                }`}
+              />
+              {serviceStatus === "online"
+                ? `연결됨 · DB ${redisStatus === "connected" ? "정상" : "미연결"}`
+                : serviceStatus === "offline"
+                  ? "서버 연결 안 됨"
+                  : "연결 확인 중"}
             </div>
             <button
               type="button"
-              className="btn btn-ghost btn-sm hidden md:flex"
+              className="btn btn-ghost btn-sm hidden md:inline-flex"
               onClick={() => void navigate("/results")}
             >
-              최근 추천
+              내 코스
             </button>
             <button
               type="button"
               className="btn btn-primary btn-sm"
               onClick={() => void navigate("/planner")}
             >
-              추천 시작
+              코스 만들기
             </button>
           </div>
         </div>
@@ -218,13 +245,11 @@ function App() {
           <Route
             path="/"
             element={
-              <OverviewPage
+              <HomePage
                 selectedMode={selectedMode}
-                streamStatusLabel={streamStatusLabel}
-                visitedCount={visitedIds.length}
-                summaryTags={summaryTags}
-                onNavigatePlanner={() => void navigate("/planner")}
-                onSelectMode={handleModeStart}
+                onSelectMode={setSelectedMode}
+                onStart={handleQuickStart}
+                onOpenPlanner={handleOpenPlanner}
               />
             }
           />
@@ -256,6 +281,7 @@ function App() {
                 onFollowUpDraftChange={setRefineDraft}
                 onFollowUpSubmit={handleRefineSubmit}
                 onConfirm={() => void navigate("/course/demo")}
+                autoStartToken={autoStartToken}
               />
             }
           />
@@ -291,44 +317,44 @@ function App() {
       </main>
 
       {/* ── Footer ── */}
-      <footer className="mt-20 bg-[#1C2B4A] py-12">
-        <div className="mx-auto max-w-[1200px] px-6">
-          <div className="mb-8 flex flex-col justify-between gap-8 md:flex-row">
-            <div>
-              <div className="mb-3 flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-[6px] bg-white/12">
-                  <Navigation size={13} className="text-white" />
-                </div>
-                <span className="text-[16px] font-bold text-white">Traveler</span>
+      <footer className="mt-16 border-t border-line bg-surface">
+        <div className="mx-auto flex max-w-[1120px] flex-col gap-6 px-5 py-10 md:flex-row md:items-start md:justify-between md:px-6">
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <div className="brand-mark">
+                <Navigation size={14} className="text-white" />
               </div>
-              <p className="max-w-[220px] text-[13px] leading-relaxed text-white/50">
-                취향과 분위기로 찾는 국내 여행 추천 플랫폼
-              </p>
+              <span className="brand-name">Traveler</span>
             </div>
-            <div className="grid grid-cols-3 gap-8 text-[13px]">
-              {[
-                { title: "서비스", items: ["여행 계획", "추천 코스", "일정 다듬기", "여행 타입"] },
-                { title: "안내", items: ["서비스 소개", "이용 방법", "자주 묻는 질문"] },
-                { title: "고객지원", items: ["문의하기", "피드백", "공지사항"] },
-              ].map(({ title, items }) => (
-                <div key={title}>
-                  <p className="mb-3 font-bold text-white">{title}</p>
-                  <div className="space-y-2">
-                    {items.map((item) => (
-                      <p key={item} className="cursor-pointer text-white/50 transition-colors hover:text-white/80">
-                        {item}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <p className="max-w-[260px] text-[13px] leading-[1.6] text-muted">
+              조건을 고르면 이동 순서까지 갖춘 국내 여행 코스를 만들어 드립니다.
+            </p>
           </div>
-          <div className="flex flex-col justify-between gap-2 border-t border-white/10 pt-6 text-[12px] text-white/30 md:flex-row">
-            <p>© 2026 Traveler. All rights reserved.</p>
+          <div className="grid grid-cols-2 gap-8 text-[13px] sm:grid-cols-3">
+            {[
+              { title: "서비스", items: ["코스 만들기", "내 코스", "일정 다듬기"] },
+              { title: "안내", items: ["서비스 소개", "이용 방법", "자주 묻는 질문"] },
+              { title: "고객지원", items: ["문의하기", "피드백"] },
+            ].map(({ title, items }) => (
+              <div key={title}>
+                <p className="mb-2.5 font-semibold text-ink">{title}</p>
+                <div className="space-y-2">
+                  {items.map((item) => (
+                    <p key={item} className="cursor-pointer text-muted transition-colors hover:text-ink">
+                      {item}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="border-t border-line">
+          <div className="mx-auto flex max-w-[1120px] flex-col gap-2 px-5 py-5 text-[12px] text-muted md:flex-row md:justify-between md:px-6">
+            <p>© 2026 Traveler</p>
             <div className="flex gap-4">
-              <span className="cursor-pointer hover:text-white/60">개인정보처리방침</span>
-              <span className="cursor-pointer hover:text-white/60">이용약관</span>
+              <span className="cursor-pointer hover:text-ink">개인정보처리방침</span>
+              <span className="cursor-pointer hover:text-ink">이용약관</span>
             </div>
           </div>
         </div>
