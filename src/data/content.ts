@@ -13,17 +13,17 @@ export const WEATHER_OPTIONS: TravelOption[] = [
 ];
 
 export const COMPANION_OPTIONS: TravelOption[] = [
-  { value: "solo", label: "🚶 혼자" },
-  { value: "couple", label: "💑 연인" },
-  { value: "family", label: "👨‍👩‍👧 가족" },
-  { value: "friends", label: "👯 친구" },
+  { value: "solo", label: "혼자" },
+  { value: "couple", label: "연인" },
+  { value: "family", label: "가족" },
+  { value: "friends", label: "친구" },
 ];
 
 export const PACE_OPTIONS: TravelOption[] = [
-  { value: "relaxed", label: "😌 차분히" },
-  { value: "balanced", label: "😊 적당히" },
-  { value: "fast", label: "⚡ 활기차게" },
-  { value: "energetic", label: "🔥 뜨겁게" },
+  { value: "relaxed", label: "여유롭게" },
+  { value: "balanced", label: "적당히" },
+  { value: "fast", label: "활기차게" },
+  { value: "energetic", label: "빽빽하게" },
 ];
 
 export const MOOD_OPTIONS: TravelOption[] = [
@@ -32,15 +32,20 @@ export const MOOD_OPTIONS: TravelOption[] = [
   { value: "romantic", label: "분위기 있는" },
 ];
 
+/**
+ * 사용자가 아직 고르지 않은 조건은 빈 문자열로 둔다.
+ * 여기에 값을 넣으면 홈의 "바로 시작"처럼 질문을 건너뛴 경로에서
+ * 고른 적 없는 조건(가족/자연/적당히)이 프롬프트에 섞여 나간다.
+ */
 export const DEFAULT_TRAVEL_COMPOSER: TravelComposerState = {
-  query: "비 오는 주말에 아이와 갈 실내 위주 코스",
-  weather: "rain",
-  companion: "family",
-  pace: "balanced",
-  mood: "calm",
-  interest: "nature",
-  startPoint: "서울 잠실",
-  endPoint: "강릉 안목해변",
+  query: "",
+  weather: "",
+  companion: "",
+  pace: "",
+  mood: "",
+  interest: "",
+  startPoint: "",
+  endPoint: "",
 };
 
 export const DEFAULT_RECOMMENDATION_COORDINATES = {
@@ -239,10 +244,10 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     title: "누구와 떠나나요?",
     description: "추천 톤과 동선을 가장 크게 바꾸는 조건입니다.",
     choices: [
-      { value: "solo", label: "🚶 혼자" },
-      { value: "couple", label: "💑 연인" },
-      { value: "friends", label: "👯 친구" },
-      { value: "family", label: "👨‍👩‍👧 가족" },
+      { value: "solo", label: "혼자" },
+      { value: "couple", label: "연인" },
+      { value: "friends", label: "친구" },
+      { value: "family", label: "가족" },
     ],
   },
   {
@@ -251,9 +256,9 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     title: "어떤 템포가 좋나요?",
     description: "이동 속도와 장소 수를 조정합니다.",
     choices: [
-      { value: "fast", label: "⚡ 짧고 빠르게" },
-      { value: "balanced", label: "😊 적당히 균형 있게" },
-      { value: "relaxed", label: "😌 여유롭게" },
+      { value: "fast", label: "짧고 빠르게" },
+      { value: "balanced", label: "적당히 균형 있게" },
+      { value: "relaxed", label: "여유롭게" },
     ],
   },
   {
@@ -262,9 +267,9 @@ export const ONBOARDING_QUESTIONS: OnboardingQuestion[] = [
     title: "오늘 끌리는 분위기는?",
     description: "같은 지역이어도 전혀 다른 장소 조합이 나옵니다.",
     choices: [
-      { value: "fun", label: "🔥 활동적인 무드" },
-      { value: "calm", label: "🌿 차분한 무드" },
-      { value: "romantic", label: "✨ 분위기 있는 무드" },
+      { value: "fun", label: "활동적인 무드" },
+      { value: "calm", label: "차분한 무드" },
+      { value: "romantic", label: "분위기 있는 무드" },
     ],
   },
 ];
