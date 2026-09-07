@@ -52,6 +52,7 @@ export type SessionPrefsResponse = {
 
 export type HealthResponse = {
   status: "ok" | string;
-  redis: "connected" | "disconnected" | string;
+  redis?: "connected" | "disconnected" | string;
+  db?: "connected" | "disconnected" | string;
   note?: string;
 };

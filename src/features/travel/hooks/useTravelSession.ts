@@ -46,7 +46,7 @@ export function useTravelSession() {
     void getHealth()
       .then((health) => {
         setServiceStatus(health.status === "ok" ? "online" : "offline");
-        setRedisStatus(health.redis === "connected" ? "connected" : "disconnected");
+        setRedisStatus(health.redis === "connected" || health.db === "connected" ? "connected" : "disconnected");
       })
       .catch(() => setServiceStatus("offline"));
   }, [syncSessionContext]);

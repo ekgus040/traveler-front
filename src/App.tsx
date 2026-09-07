@@ -192,7 +192,7 @@ function App() {
           <div className="header-actions">
             <div className="hidden items-center gap-2 text-[11px] text-[#6B7280] lg:flex">
               <span className={`h-2 w-2 rounded-full ${serviceStatus === "online" ? "bg-emerald-500" : serviceStatus === "offline" ? "bg-red-500" : "bg-amber-400"}`} />
-              {serviceStatus === "online" ? `API 연결 · Redis ${redisStatus === "connected" ? "정상" : "미연결"}` : serviceStatus === "offline" ? "API 연결 안 됨" : "API 확인 중"}
+              {serviceStatus === "online" ? `API 연결 · DB ${redisStatus === "connected" ? "정상" : "미연결"}` : serviceStatus === "offline" ? "API 연결 안 됨" : "API 확인 중"}
             </div>
             <button
               type="button"
