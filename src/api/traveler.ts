@@ -95,7 +95,19 @@ export async function enrichRecommendedPlaces(
   places: RecommendedPlacePayload[],
 ): Promise<RecommendedPlacePayload[]> {
   return Promise.all(places.map(async (place) => {
-    if (place.place_name && place.lat != null && place.lng != null) {
+    // 이름·좌표만 보고 건너뛰면 안 된다.
+    // LLM이 스트리밍 JSON에 place_name 을 실어주고 백엔드가 lat/lng 를 채우는 조합이
+    // 흔한데, 그 경우 category·description·indoor·iconic_score 가 전부 빈 채로 남아
+    // 카드에 장소 이름만 덩그러니 뜬다(2026-09-07 경주 코스에서 확인).
+    // TourAPI 가 채워줄 필드가 하나라도 비어 있으면 보강한다.
+    const needsDetail =
+      !place.place_name ||
+      place.lat == null ||
+      place.lng == null ||
+      !place.category ||
+      !place.description;
+
+    if (!needsDetail) {
       return place;
     }
 
@@ -107,11 +119,11 @@ export async function enrichRecommendedPlaces(
       return {
         ...detail,
         ...place,
-        place_name: place.place_name ?? detail.place_name,
-        category: place.category ?? detail.category,
+        place_name: place.place_name || detail.place_name,
+        category: place.category || detail.category,
         lat: place.lat ?? detail.lat,
         lng: place.lng ?? detail.lng,
-        description: place.description ?? detail.description,
+        description: place.description || detail.description,
       };
     } catch {
       return place;
