@@ -48,7 +48,10 @@ export function buildTravelPrompt(input: TravelPromptInput) {
   if (pace) lines.push(`이동 성향: ${pace}`);
   if (interest) lines.push(`관심 테마: ${interest}`);
 
-  lines.push(`요청: ${composer.query}`);
+  // 백엔드는 "요청" 문장만 검색에 쓴다. 별도의 "지역:" 줄은 무시되므로
+  // 목적지는 반드시 이 문장 안에 넣고, 비어 있으면 고른 조건으로 채운다
+  // (빈 요청으로 보내면 전국에서 엉뚱한 장소가 섞여 나온다. 2026-09-08 실측).
+  lines.push(`요청: ${buildRequestText(mode, composer, interest)}`);
 
   // 개수를 명시하지 않으면 LLM이 1~2곳만 돌려준다(2026-09-07 실측:
   // "강릉 바다…" 1곳 → "…3곳 이상 묶은 코스" 3곳). "코스"라는 결과물에는
@@ -61,6 +64,20 @@ export function buildTravelPrompt(input: TravelPromptInput) {
   }
 
   return lines.join("\n");
+}
+
+function buildRequestText(mode: TravelMode, composer: TravelComposerState, interest: string) {
+  const query = composer.query.trim();
+  const destination = mode === "nearby" ? "" : composer.endPoint.trim();
+
+  if (query) {
+    return destination && !query.includes(destination) ? `${destination} ${query}` : query;
+  }
+
+  const theme = interest ? `${interest} 위주로` : "대표 명소와 맛집을";
+  return destination
+    ? `${destination} ${theme} 둘러보는 코스`
+    : `${theme} 둘러보는 근교 코스`;
 }
 
 function getInterestLabel(value: string) {

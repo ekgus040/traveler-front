@@ -1,3 +1,6 @@
+import ChevronDown from "lucide-react/dist/esm/icons/chevron-down.mjs";
+import { useState } from "react";
+
 export type PlaceCardItem = {
   id: string;
   title: string;
@@ -22,22 +25,37 @@ const badgeStyles: Record<string, string> = {
   히든: "bg-[#F1F3F5] text-[#4E5968]",
 };
 
+/** 이 길이를 넘으면 접어두고 "더보기"를 붙인다 (3줄 남짓). */
+const CLAMP_THRESHOLD = 110;
+
 export function PlaceCard({ place, index, selected = false, onSelect }: PlaceCardProps) {
+  const [expanded, setExpanded] = useState(false);
+  // 관광공사 설명은 수백 자짜리도 있어서 그대로 두면 카드 하나가 화면을 다 먹는다.
+  // 원문은 자르지 않고, 접힌 상태에서만 3줄로 보여준다.
+  const isLong = place.summary.length > CLAMP_THRESHOLD;
+
+  function toggle() {
+    onSelect?.(place.id);
+    if (isLong) setExpanded((current) => !current);
+  }
+
+  const interactive = isLong || Boolean(onSelect);
+
   return (
     <article
       id={`place-card-${place.id}`}
-      role={onSelect ? "button" : undefined}
-      tabIndex={onSelect ? 0 : undefined}
-      aria-pressed={onSelect ? selected : undefined}
+      role={interactive ? "button" : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      aria-expanded={isLong ? expanded : undefined}
       className={`course-card-enter overflow-hidden rounded-[14px] border bg-white transition-colors ${
         selected ? "border-brand ring-1 ring-brand" : "border-line"
-      } ${onSelect ? "cursor-pointer hover:border-line-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" : ""}`}
+      } ${interactive ? "cursor-pointer hover:border-line-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" : ""}`}
       style={{ animationDelay: `${index * 60}ms` }}
-      onClick={() => onSelect?.(place.id)}
+      onClick={interactive ? toggle : undefined}
       onKeyDown={(event) => {
-        if (!onSelect || (event.key !== "Enter" && event.key !== " ")) return;
+        if (!interactive || (event.key !== "Enter" && event.key !== " ")) return;
         event.preventDefault();
-        onSelect(place.id);
+        toggle();
       }}
     >
       <div className="flex gap-3.5 p-4 md:p-5">
@@ -65,7 +83,24 @@ export function PlaceCard({ place, index, selected = false, onSelect }: PlaceCar
           <h3 className="mt-1 text-[17px] font-bold leading-[1.35] tracking-[-0.02em] text-ink">{place.title}</h3>
 
           {place.summary ? (
-            <p className="mt-1.5 text-[14px] leading-[1.65] text-sub">{place.summary}</p>
+            <>
+              <p
+                className={`mt-1.5 whitespace-pre-line text-[14px] leading-[1.65] text-sub ${
+                  isLong && !expanded ? "line-clamp-3" : ""
+                }`}
+              >
+                {place.summary}
+              </p>
+              {isLong ? (
+                <span className="mt-1.5 inline-flex items-center gap-0.5 text-[13px] font-semibold text-brand">
+                  {expanded ? "접기" : "더보기"}
+                  <ChevronDown
+                    size={14}
+                    className={`transition-transform ${expanded ? "rotate-180" : ""}`}
+                  />
+                </span>
+              ) : null}
+            </>
           ) : null}
 
           {place.tags.length > 0 ? (
