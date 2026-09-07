@@ -30,9 +30,9 @@ type MarkerEntry = {
 
 // 명소: teal, 히든: orange, 없음: navy
 const MARKER_STYLE: Record<string, { bg: string; label: string }> = {
-  명소: { bg: "#2D9C8C", label: "명소" },
-  히든: { bg: "#F07A3B", label: "히든" },
-  default: { bg: "#1C2B4A", label: "" },
+  명소: { bg: "#1B64DA", label: "명소" },
+  히든: { bg: "#4E5968", label: "히든" },
+  default: { bg: "#191F28", label: "" },
 };
 
 function markerHtml(index: number, badge?: PlaceBadge): string {
@@ -61,7 +61,7 @@ function markerHtml(index: number, badge?: PlaceBadge): string {
 }
 
 function infoWindowHtml(place: Place): string {
-  const badgeColor = place.badge === "명소" ? "#2D9C8C" : place.badge === "히든" ? "#F07A3B" : "#6B7280";
+  const badgeColor = place.badge === "명소" ? "#1B64DA" : place.badge === "히든" ? "#4E5968" : "#6B7280";
   const badgeHtml = place.badge
     ? `<span style="display:inline-block;margin-bottom:6px;padding:1px 7px;
          background:${badgeColor}1a;color:${badgeColor};
@@ -71,8 +71,8 @@ function infoWindowHtml(place: Place): string {
   return `
     <div style="padding:10px 13px;min-width:150px;max-width:210px;font-family:'Noto Sans KR',sans-serif;">
       ${badgeHtml}
-      <strong style="display:block;font-size:13px;color:#1C2B4A;line-height:1.4;">${escapeHtml(place.title)}</strong>
-      <span style="display:block;margin-top:3px;font-size:11px;color:#9CA3AF;">${escapeHtml(place.category)}</span>
+      <strong style="display:block;font-size:13px;color:#191F28;line-height:1.4;">${escapeHtml(place.title)}</strong>
+      <span style="display:block;margin-top:3px;font-size:11px;color:#8B95A1;">${escapeHtml(place.category)}</span>
     </div>
   `;
 }
@@ -232,7 +232,7 @@ export function MapPanel({
           new maps.Polyline({
             map,
             path: polylinePath,
-            strokeColor: "#2D9C8C",
+            strokeColor: "#1B64DA",
             strokeWeight: 4,
             strokeOpacity: 0.85,
             strokeStyle: "solid",
@@ -245,7 +245,7 @@ export function MapPanel({
           new maps.Polyline({
             map,
             path: straightPath,
-            strokeColor: "#2D9C8C",
+            strokeColor: "#1B64DA",
             strokeWeight: 3,
             strokeOpacity: 0.55,
             strokeStyle: "shortdash",
@@ -291,22 +291,22 @@ export function MapPanel({
 
         {!hasClientId && (
           <div className="map-overlay-card">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-[#9CA3AF]">지도 설정 필요</p>
-            <strong className="mt-2 block text-[14px] text-[#1C2B4A]">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-muted">지도 설정 필요</p>
+            <strong className="mt-2 block text-[14px] text-ink">
               VITE_NAVER_MAP_CLIENT_ID를 설정하면 마커와 경로가 표시됩니다.
             </strong>
           </div>
         )}
         {hasClientId && mapError && (
           <div className="map-overlay-card">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-[#9CA3AF]">지도 오류</p>
-            <strong className="mt-2 block text-[14px] text-[#1C2B4A]">{mapError}</strong>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-muted">지도 오류</p>
+            <strong className="mt-2 block text-[14px] text-ink">{mapError}</strong>
           </div>
         )}
         {hasClientId && !mapError && coordinatePlaces.length === 0 && (
           <div className="map-overlay-card">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-[#9CA3AF]">좌표 대기 중</p>
-            <strong className="mt-2 block text-[14px] text-[#1C2B4A]">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-muted">좌표 대기 중</p>
+            <strong className="mt-2 block text-[14px] text-ink">
               추천 결과가 도착하면 마커와 경로가 표시됩니다.
             </strong>
           </div>
@@ -315,12 +315,12 @@ export function MapPanel({
 
       {/* 범례 */}
       {!expanded && coordinatePlaces.length > 0 && (
-        <div className="flex flex-wrap items-center gap-3 text-[12px] text-[#6B7280]">
+        <div className="flex flex-wrap items-center gap-3 text-[12px] text-sub">
           <div className="flex items-center gap-1.5">
             <svg width="20" height="4" viewBox="0 0 20 4">
               <line
                 x1="0" y1="2" x2="20" y2="2"
-                stroke="#2D9C8C" strokeWidth="2.5"
+                stroke="#1B64DA" strokeWidth="2.5"
                 strokeDasharray={routeStatus === "fallback" ? "5 3" : undefined}
               />
             </svg>
@@ -332,13 +332,13 @@ export function MapPanel({
           </div>
           {landmarkCount > 0 && (
             <div className="flex items-center gap-1.5">
-              <div className="h-3 w-3 rounded-full bg-[#2D9C8C]" />
+              <div className="h-3 w-3 rounded-full bg-brand" />
               명소 {landmarkCount}곳
             </div>
           )}
           {hiddenCount > 0 && (
             <div className="flex items-center gap-1.5">
-              <div className="h-3 w-3 rounded-full bg-[#F07A3B]" />
+              <div className="h-3 w-3 rounded-full bg-[#4E5968]" />
               히든 {hiddenCount}곳
             </div>
           )}
@@ -348,7 +348,7 @@ export function MapPanel({
       {/* 노트 태그 */}
       {!expanded && notes.length > 0 && <div className="flex flex-wrap gap-1.5">
         {notes.map((note) => (
-          <span key={note} className="rounded-full border border-[#E8E4DC] bg-white px-3 py-1.5 text-[12px] text-[#6B7280]">
+          <span key={note} className="rounded-full border border-line bg-white px-3 py-1.5 text-[12px] text-sub">
             {note}
           </span>
         ))}

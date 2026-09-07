@@ -1,13 +1,13 @@
 import ArrowRight from "lucide-react/dist/esm/icons/arrow-right.mjs";
-import Bot from "lucide-react/dist/esm/icons/bot.mjs";
+import Check from "lucide-react/dist/esm/icons/check.mjs";
 import LoaderCircle from "lucide-react/dist/esm/icons/loader-circle.mjs";
 import MapPinned from "lucide-react/dist/esm/icons/map-pinned.mjs";
 import RotateCcw from "lucide-react/dist/esm/icons/rotate-ccw.mjs";
 import Send from "lucide-react/dist/esm/icons/send.mjs";
-import Sparkles from "lucide-react/dist/esm/icons/sparkles.mjs";
 import { useEffect, useRef, useState } from "react";
 import PlaceCard from "../components/travel/PlaceCard";
 import RecommendationReasonPanel from "../components/travel/RecommendationReasonPanel";
+import { modeLabels } from "../data/content";
 import type { ChatMessage, Place, TravelComposerState, TravelMode, TravelOption } from "../types/domain";
 
 type ChatStep = "interest" | "companion" | "pace" | "route" | "request" | "result";
@@ -28,22 +28,26 @@ type ChatPlannerPageProps = {
   onFollowUpDraftChange: (value: string) => void;
   onFollowUpSubmit: () => void;
   onConfirm: () => void;
+  /** 홈에서 바로 추천을 시작한 경우 값이 올라간다. 결과 단계로 건너뛴다. */
+  autoStartToken: number;
 };
 
-const modeAnswer: Record<TravelMode, string> = {
-  nearby: "근교 드라이브",
-  longdist: "자차 장거리",
-  remote: "타지 렌터카",
-};
-
-const interestOptions = [
-  { value: "nature", label: "🌿 자연" },
-  { value: "city", label: "🏙️ 도시" },
-  { value: "food", label: "🍽️ 맛집" },
-  { value: "culture", label: "🏛️ 문화" },
+const interestOptions: TravelOption[] = [
+  { value: "nature", label: "자연·풍경" },
+  { value: "city", label: "도시·거리" },
+  { value: "food", label: "맛집·카페" },
+  { value: "culture", label: "문화·역사" },
 ];
 
 const PROFILE_STORAGE_KEY = "traveler-chat-profile";
+
+const STEP_LABEL: Record<Exclude<ChatStep, "result">, string> = {
+  interest: "관심사",
+  companion: "동행",
+  pace: "템포",
+  route: "이동 경로",
+  request: "추가 요청",
+};
 
 export function ChatPlannerPage({
   selectedMode,
@@ -61,6 +65,7 @@ export function ChatPlannerPage({
   onFollowUpDraftChange,
   onFollowUpSubmit,
   onConfirm,
+  autoStartToken,
 }: ChatPlannerPageProps) {
   const [step, setStep] = useState<ChatStep>("interest");
   const [answers, setAnswers] = useState<Array<{ label: string; value: string }>>([]);
@@ -83,6 +88,11 @@ export function ChatPlannerPage({
     }
   }, []);
 
+  // 홈의 검색바/프리셋으로 들어온 경우 질문을 건너뛰고 결과부터 보여준다.
+  useEffect(() => {
+    if (autoStartToken > 0) setStep("result");
+  }, [autoStartToken]);
+
   useEffect(() => {
     if (step !== "result") return;
     logEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -93,34 +103,37 @@ export function ChatPlannerPage({
     setStep(nextStep);
   }
 
-  function selectInterest(option: { value: string; label: string }) {
+  function selectInterest(option: TravelOption) {
     onComposerChange("interest", option.value);
-    answer("선호 여행", option.label, "companion");
+    answer(STEP_LABEL.interest, option.label, "companion");
   }
 
   function selectCompanion(option: TravelOption) {
     onComposerChange("companion", option.value);
-    answer("동행", option.label, "pace");
+    answer(STEP_LABEL.companion, option.label, "pace");
   }
 
   function selectPace(option: TravelOption) {
     onComposerChange("pace", option.value);
-    sessionStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify({
-      interest: composer.interest,
-      companion: composer.companion,
-      pace: option.value,
-    }));
-    answer("에너지 레벨", option.label, selectedMode === "longdist" ? "route" : "request");
+    sessionStorage.setItem(
+      PROFILE_STORAGE_KEY,
+      JSON.stringify({
+        interest: composer.interest,
+        companion: composer.companion,
+        pace: option.value,
+      }),
+    );
+    answer(STEP_LABEL.pace, option.label, selectedMode === "longdist" ? "route" : "request");
   }
 
   function submitRoute() {
     if (!composer.startPoint.trim() || !composer.endPoint.trim()) return;
-    answer("이동 경로", `${composer.startPoint} → ${composer.endPoint}`, "request");
+    answer(STEP_LABEL.route, `${composer.startPoint} → ${composer.endPoint}`, "request");
   }
 
   function submitRequest() {
-    if (!composer.query.trim()) return;
-    answer("추가 요청", composer.query.trim(), "result");
+    const trimmed = composer.query.trim();
+    answer(STEP_LABEL.request, trimmed || "조건에 맞게 알아서 추천", "result");
     onSubmit();
   }
 
@@ -132,156 +145,276 @@ export function ChatPlannerPage({
     setStep("interest");
   }
 
-  const showStep = (target: ChatStep) => step === target;
-  // The first user message is already rendered as the structured request bubble above.
+  const totalSteps = selectedMode === "longdist" ? 5 : 4;
+  const doneSteps = Math.min(answers.length, totalSteps);
+  const progress = step === "result" ? 100 : Math.round((doneSteps / totalSteps) * 100);
   const conversationMessages = messages.slice(1);
+  const isQuestionStep = step !== "result";
 
   return (
-    <section className="mx-auto w-full max-w-[900px] pb-10">
-      <div className="mb-6 flex items-center justify-between">
+    <section className="mx-auto w-full max-w-[720px] pb-8">
+      {/* ── 헤더 ── */}
+      <div className="mb-5 flex items-start justify-between gap-4">
         <div>
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-[#FF7B59]">Traveler assistant · {modeAnswer[selectedMode]}</p>
-          <h1 className="mt-1 text-[28px] font-extrabold tracking-tight text-[#2D3436]">대화로 여행 코스를 완성해요</h1>
+          <p className="eyebrow">{modeLabels[selectedMode]}</p>
+          <h1 className="mt-1 text-[24px] font-bold tracking-[-0.03em] text-ink">
+            {step === "result" ? "추천 코스" : "코스 만들기"}
+          </h1>
         </div>
-        <button type="button" className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-[12px] font-bold text-[#828F92] shadow-sm" onClick={restart}>
-          <RotateCcw size={13} /> 새 대화
+        <button type="button" className="btn btn-outline btn-sm" onClick={restart}>
+          <RotateCcw size={13} /> 처음부터
         </button>
       </div>
 
-      <div className="rounded-[28px] border border-white/80 bg-[#FFF6EC]/80 p-4 shadow-[0_18px_55px_rgba(85,61,45,.08)] md:p-7">
-        <div className="space-y-5">
-          {restoredProfile ? (
-            <div className="flex items-start gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#4ECDC4] to-[#95E1D3] text-white"><Sparkles size={17} /></div>
-              <div className="rounded-[20px] rounded-bl-md bg-white px-4 py-3 shadow-sm">
-                <p className="text-sm font-bold text-[#2D3436]">지난 취향을 기억하고 있어요.</p>
-                <p className="mt-1 text-xs text-[#828F92]">새 대화를 누르기 전까지 같은 취향으로 추천할게요.</p>
+      {/* ── 진행 표시 ── */}
+      {isQuestionStep ? (
+        <div className="mb-5">
+          <div className="mb-2 flex items-center justify-between text-[13px] text-muted">
+            <span>{doneSteps}/{totalSteps} 단계</span>
+            <span>{progress}%</span>
+          </div>
+          <div className="h-1 w-full overflow-hidden rounded-full bg-line">
+            <div className="h-full rounded-full bg-brand transition-all duration-300" style={{ width: `${progress}%` }} />
+          </div>
+        </div>
+      ) : null}
+
+      {/* ── 선택한 조건 요약 ── */}
+      {answers.length > 0 ? (
+        <div className="mb-4 flex flex-wrap gap-1.5">
+          {answers.map((item) => (
+            <span key={item.label} className="badge badge-outline gap-1 py-1">
+              <Check size={11} className="text-brand" />
+              <span className="text-muted">{item.label}</span>
+              <span className="font-semibold text-ink">{item.value}</span>
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      {restoredProfile && isQuestionStep ? (
+        <p className="mb-4 rounded-[10px] border border-brand-border bg-brand-weak px-4 py-3 text-[13px] text-brand">
+          지난번 선택한 취향을 그대로 사용하고 있어요. 바꾸려면 처음부터를 눌러주세요.
+        </p>
+      ) : null}
+
+      {/* ── 질문 ── */}
+      {step === "interest" && !restoredProfile ? (
+        <QuestionCard title="어떤 걸 보고 싶으세요?" hint="장소를 고르는 기준이 됩니다.">
+          <div className="grid grid-cols-2 gap-2">
+            {interestOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={`chip justify-start py-3 ${composer.interest === option.value ? "is-active" : ""}`}
+                onClick={() => selectInterest(option)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </QuestionCard>
+      ) : null}
+
+      {step === "companion" ? (
+        <QuestionCard title="누구와 함께 가시나요?" hint="동행에 따라 장소와 체류 시간이 달라집니다.">
+          <div className="grid grid-cols-2 gap-2">
+            {companionOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className="chip justify-start py-3"
+                onClick={() => selectCompanion(option)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </QuestionCard>
+      ) : null}
+
+      {step === "pace" ? (
+        <QuestionCard title="오늘의 이동 템포는요?" hint="장소 수와 이동량을 조절합니다.">
+          <div className="grid grid-cols-2 gap-2">
+            {paceOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className="chip justify-start py-3"
+                onClick={() => selectPace(option)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </QuestionCard>
+      ) : null}
+
+      {step === "route" ? (
+        <QuestionCard title="어디에서 어디로 가시나요?" hint="경로 위 휴게소와 식사 지점을 함께 배치합니다.">
+          <div className="grid gap-2 sm:grid-cols-[1fr_auto_1fr]">
+            <input
+              className="form-input"
+              value={composer.startPoint}
+              onChange={(event) => onComposerChange("startPoint", event.target.value)}
+              placeholder="출발지"
+            />
+            <ArrowRight className="hidden self-center text-muted sm:block" size={16} />
+            <input
+              className="form-input"
+              value={composer.endPoint}
+              onChange={(event) => onComposerChange("endPoint", event.target.value)}
+              placeholder="목적지"
+            />
+          </div>
+          <button
+            type="button"
+            className="btn btn-primary mt-3 w-full py-3"
+            disabled={!composer.startPoint.trim() || !composer.endPoint.trim()}
+            onClick={submitRoute}
+          >
+            다음
+          </button>
+        </QuestionCard>
+      ) : null}
+
+      {step === "request" ? (
+        <QuestionCard
+          title="더 원하는 조건이 있나요?"
+          hint="비워두고 넘어가도 앞에서 고른 조건으로 코스를 만듭니다."
+        >
+          <textarea
+            autoFocus
+            rows={3}
+            className="form-textarea"
+            value={composer.query}
+            onChange={(event) => onComposerChange("query", event.target.value)}
+            placeholder="예: 주차 편한 곳 위주로, 점심은 국수집"
+          />
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              className="btn btn-outline flex-1 py-3"
+              onClick={() => {
+                onComposerChange("query", "");
+                submitRequest();
+              }}
+            >
+              건너뛰기
+            </button>
+            <button type="button" className="btn btn-primary flex-[2] py-3" onClick={submitRequest}>
+              코스 만들기
+              <ArrowRight size={15} />
+            </button>
+          </div>
+        </QuestionCard>
+      ) : null}
+
+      {/* ── 결과 ── */}
+      {step === "result" ? (
+        <div className="space-y-4">
+          {isStreaming ? (
+            <div className="shell-card flex items-center gap-3 p-5">
+              <LoaderCircle className="animate-spin text-brand" size={20} />
+              <div>
+                <p className="text-[15px] font-semibold text-ink">조건에 맞는 장소를 찾고 있어요</p>
+                <p className="mt-0.5 text-[13px] text-muted">날씨·방문 이력·취향을 함께 확인합니다.</p>
               </div>
             </div>
           ) : null}
 
-          <AssistantBubble title="어떤 여행을 좋아하세요?" visible={!restoredProfile}>
-            <div className="grid grid-cols-2 gap-2">
-              {interestOptions.map((option) => (
-                <Choice key={option.value} active={composer.interest === option.value && step !== "interest"} onClick={() => selectInterest(option)}>
-                  {option.label}
-                </Choice>
+          {conversationMessages
+            .filter((message) => message.text)
+            .map((message) =>
+              message.role === "assistant" ? (
+                <div key={message.id} className="shell-card p-5">
+                  <p className="mb-2 text-[13px] font-semibold text-muted">코스 설명</p>
+                  <p className="whitespace-pre-wrap text-[14px] leading-[1.75] text-sub">{message.text}</p>
+                </div>
+              ) : (
+                <div key={message.id} className="flex justify-end">
+                  <div className="max-w-[80%] whitespace-pre-wrap rounded-[12px] bg-brand px-4 py-2.5 text-[14px] leading-[1.6] text-white">
+                    {message.text}
+                  </div>
+                </div>
+              ),
+            )}
+
+          {places.length > 0 && !isStreaming ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-[15px] font-bold text-ink">
+                  추천 코스 <span className="ml-1 text-[13px] font-medium text-muted">총 {places.length}곳</span>
+                </p>
+              </div>
+              {places.map((place, index) => (
+                <PlaceCard key={place.id} place={place} index={index} />
               ))}
+              <div className="flex flex-wrap gap-2 pt-1">
+                {places.some((place) => place.recommendReason) ? (
+                  <button type="button" className="btn btn-outline py-3" onClick={() => setReasonOpen(true)}>
+                    추천 근거 보기
+                  </button>
+                ) : null}
+                <button type="button" className="btn btn-primary flex-1 py-3" onClick={onConfirm}>
+                  <MapPinned size={15} /> 지도에서 전체 코스 보기
+                </button>
+              </div>
             </div>
-          </AssistantBubble>
-          {!restoredProfile ? <AnswerBubble answer={answers.find((item) => item.label === "선호 여행")} /> : null}
+          ) : null}
 
-          <AssistantBubble title="누구와 함께 가시나요?" visible={!restoredProfile && (showStep("companion") || answers.some((item) => item.label === "동행"))}>
-            <div className="flex flex-wrap gap-2">
-              {companionOptions.map((option) => <Choice key={option.value} onClick={() => selectCompanion(option)}>{option.label}</Choice>)}
-            </div>
-          </AssistantBubble>
-          {!restoredProfile ? <AnswerBubble answer={answers.find((item) => item.label === "동행")} /> : null}
+          {error ? (
+            <p className="rounded-[10px] border border-[#F5C2C4] bg-[#FEF1F1] px-4 py-3 text-[13px] text-[#C63B40]">
+              {error}
+            </p>
+          ) : null}
 
-          <AssistantBubble title="오늘 에너지 레벨은 어떤가요?" visible={!restoredProfile && (showStep("pace") || answers.some((item) => item.label === "에너지 레벨"))}>
-            <div className="flex flex-wrap gap-2">
-              {paceOptions.map((option) => <Choice key={option.value} onClick={() => selectPace(option)}>{option.label}</Choice>)}
-            </div>
-          </AssistantBubble>
-          {!restoredProfile ? <AnswerBubble answer={answers.find((item) => item.label === "에너지 레벨")} /> : null}
-
-          <AssistantBubble title="출발지와 목적지를 알려주세요." visible={showStep("route") || answers.some((item) => item.label === "이동 경로")}>
-            <div className="grid gap-2 sm:grid-cols-[1fr_auto_1fr_auto] sm:items-center">
-              <input className="rounded-xl border border-[#2D3436]/10 bg-[#FFF6EC] px-3 py-2.5 text-sm outline-none focus:border-[#FF7B59]" value={composer.startPoint} onChange={(event) => onComposerChange("startPoint", event.target.value)} placeholder="출발지" />
-              <ArrowRight className="hidden text-[#FF7B59] sm:block" size={16} />
-              <input className="rounded-xl border border-[#2D3436]/10 bg-[#FFF6EC] px-3 py-2.5 text-sm outline-none focus:border-[#FF7B59]" value={composer.endPoint} onChange={(event) => onComposerChange("endPoint", event.target.value)} placeholder="목적지" />
-              <button className="rounded-xl bg-[#2D3436] px-4 py-2.5 text-xs font-bold text-white" onClick={submitRoute}>확인</button>
-            </div>
-          </AssistantBubble>
-          <AnswerBubble answer={answers.find((item) => item.label === "이동 경로")} />
-
-          <AssistantBubble title="원하는 여행을 평소 말투로 알려주세요." visible={showStep("request") || answers.some((item) => item.label === "추가 요청")}>
-            <p className="text-xs leading-5 text-[#828F92]">장소, 분위기, 동행 조건을 한 문장에 편하게 적어도 알아들을 수 있어요.</p>
-          </AssistantBubble>
-          {showStep("request") ? (
-            <div className="ml-auto flex w-full max-w-[82%] items-center gap-2 rounded-full border border-[#2D3436]/10 bg-white p-1.5 pl-5 shadow-[0_8px_24px_rgba(45,52,54,.07)]">
+          {!isStreaming && places.length > 0 ? (
+            <div className="sticky bottom-4 flex items-center gap-2 rounded-[12px] border border-line bg-white p-2 pl-4 shadow-pop">
               <input
-                autoFocus
-                className="min-w-0 flex-1 bg-transparent py-2 text-sm text-[#2D3436] outline-none placeholder:text-[#B0B8BA]"
-                value={composer.query}
-                onChange={(event) => onComposerChange("query", event.target.value)}
+                className="min-w-0 flex-1 bg-transparent py-2 text-[14px] text-ink outline-none placeholder:text-muted"
+                value={followUpDraft}
+                onChange={(event) => onFollowUpDraftChange(event.target.value)}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" && !event.nativeEvent.isComposing) submitRequest();
+                  if (event.key === "Enter" && !event.nativeEvent.isComposing) onFollowUpSubmit();
                 }}
-                placeholder="메시지를 입력하세요"
+                placeholder="예: 두 번째 장소는 빼줘 / 카페를 먼저 가고 싶어"
               />
               <button
                 type="button"
-                aria-label="여행 요청 보내기"
-                className="rounded-full bg-gradient-to-br from-[#FF7B59] to-[#FF6B6B] p-3 text-white shadow-lg disabled:opacity-40"
-                disabled={!composer.query.trim()}
-                onClick={submitRequest}
+                aria-label="수정 요청 보내기"
+                className="btn btn-primary shrink-0 px-3 py-2.5"
+                onClick={onFollowUpSubmit}
               >
-                <Send size={18} />
+                <Send size={15} />
               </button>
             </div>
           ) : null}
-          <AnswerBubble answer={answers.find((item) => item.label === "추가 요청")} />
 
-          {step === "result" ? (
-            <div className="space-y-4">
-              {isStreaming ? (
-                <div className="flex items-center gap-3 rounded-[20px] bg-white p-4 shadow-sm">
-                  <LoaderCircle className="animate-spin text-[#FF7B59]" size={22} />
-                  <div><strong className="text-sm text-[#2D3436]">조건에 맞는 장소를 찾고 있어요</strong><p className="mt-1 text-xs text-[#828F92]">날씨·방문 이력·취향을 함께 확인합니다.</p></div>
-                </div>
-              ) : null}
-              {conversationMessages.filter((message) => message.text).map((message) => (
-                message.role === "assistant" ? (
-                  <div key={message.id} className="flex items-start gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#4ECDC4] to-[#95E1D3] text-white"><Bot size={17} /></div>
-                    <div className="max-w-[82%] whitespace-pre-wrap rounded-[20px] rounded-bl-md bg-white p-4 text-[13px] leading-6 text-[#4A5658] shadow-sm">{message.text}</div>
-                  </div>
-                ) : (
-                  <div key={message.id} className="flex justify-end">
-                    <div className="max-w-[78%] whitespace-pre-wrap rounded-[20px] rounded-br-md bg-gradient-to-br from-[#FF7B59] to-[#FF6B6B] px-4 py-3 text-[13px] leading-6 text-white shadow-[0_8px_20px_rgba(255,123,89,.18)]">{message.text}</div>
-                  </div>
-                )
-              ))}
-              {places.length > 0 && !isStreaming ? (
-                <div className="ml-0 space-y-3 md:ml-12">
-                  <div className="flex items-center gap-2 text-xs font-bold text-[#828F92]"><Sparkles size={14} className="text-[#FF7B59]" /> 추천 코스</div>
-                  {places.map((place, index) => <PlaceCard key={place.id} place={place} index={index} />)}
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    <button type="button" className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-[#FF7B59] shadow-sm" onClick={() => setReasonOpen(true)}><Sparkles size={16} /> 추천 근거 보기</button>
-                    <button type="button" className="inline-flex items-center gap-2 rounded-full bg-[#2D3436] px-5 py-3 text-sm font-bold text-white" onClick={onConfirm}><MapPinned size={16} /> 지도에서 전체 코스 보기</button>
-                  </div>
-                </div>
-              ) : null}
-              {error ? <p className="rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</p> : null}
-              {!isStreaming && places.length > 0 ? (
-                <div className="flex gap-2 rounded-full border border-[#2D3436]/10 bg-white p-1.5 shadow-sm">
-                  <input className="min-w-0 flex-1 rounded-full px-4 text-sm outline-none" value={followUpDraft} onChange={(event) => onFollowUpDraftChange(event.target.value)} placeholder="예: 두 번째 장소는 빼줘 / 카페를 먼저 가고 싶어" />
-                  <button className="rounded-full bg-gradient-to-br from-[#FF7B59] to-[#FF6B6B] p-3 text-white" onClick={onFollowUpSubmit}><Send size={16} /></button>
-                </div>
-              ) : null}
-              <div ref={logEndRef} />
-              <RecommendationReasonPanel places={places} open={reasonOpen} onClose={() => setReasonOpen(false)} />
-            </div>
-          ) : null}
+          <div ref={logEndRef} />
+          <RecommendationReasonPanel places={places} open={reasonOpen} onClose={() => setReasonOpen(false)} />
         </div>
-      </div>
+      ) : null}
     </section>
   );
 }
 
-function AssistantBubble({ title, visible, children }: { title: string; visible: boolean; children: React.ReactNode }) {
-  if (!visible) return null;
-  return <div className="flex items-start gap-3"><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#4ECDC4] to-[#95E1D3] text-white"><Bot size={17} /></div><div className="w-full max-w-[82%] rounded-[20px] rounded-bl-md bg-white p-4 shadow-sm"><p className="mb-3 text-sm font-bold text-[#2D3436]">{title}</p>{children}</div></div>;
-}
-
-function AnswerBubble({ answer }: { answer?: { label: string; value: string } }) {
-  if (!answer) return null;
-  return <div className="flex justify-end"><div className="max-w-[75%] rounded-[20px] rounded-br-md bg-gradient-to-br from-[#FF7B59] to-[#FF6B6B] px-4 py-3 text-sm font-semibold text-white shadow-[0_8px_20px_rgba(255,123,89,.18)]"><span className="mr-2 text-white/65">{answer.label}</span>{answer.value}</div></div>;
-}
-
-function Choice({ children, active = false, onClick }: { children: React.ReactNode; active?: boolean; onClick: () => void }) {
-  return <button type="button" onClick={onClick} className={`flex flex-col rounded-2xl border px-4 py-3 text-left text-sm transition ${active ? "border-[#FF7B59] bg-[#FFE8D6] text-[#FF7B59]" : "border-[#2D3436]/10 bg-[#FFF6EC] text-[#2D3436] hover:border-[#FF7B59]/60"}`}>{children}</button>;
+function QuestionCard({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="shell-card p-5 md:p-6">
+      <h2 className="text-[18px] font-bold tracking-[-0.02em] text-ink">{title}</h2>
+      <p className="mt-1 text-[13px] text-muted">{hint}</p>
+      <div className="mt-4">{children}</div>
+    </div>
+  );
 }
 
 export default ChatPlannerPage;
