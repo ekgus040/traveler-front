@@ -57,6 +57,8 @@ function App() {
     isStreaming,
     streamError,
     startRecommendation,
+    reviseRecommendation,
+    canRevise,
     resetToModeSeed,
   } = useRecommendationStream({
     mode: selectedMode,
@@ -124,10 +126,19 @@ function App() {
   }
 
   function handleRefineSubmit() {
-    if (!refineDraft.trim()) return;
-    const nextComposer = { ...composer, query: refineDraft.trim() };
-    setComposer(nextComposer);
+    const message = refineDraft.trim();
+    if (!message) return;
     setRefineDraft("");
+
+    // 이미 코스가 있으면 통째로 다시 만들지 않고 바뀐 부분만 반영한다
+    // (mobility_rag Sprint 7, POST /api/chat/revise).
+    if (canRevise) {
+      void reviseRecommendation(message);
+      return;
+    }
+
+    const nextComposer = { ...composer, query: message };
+    setComposer(nextComposer);
     startRecommendation(nextComposer);
   }
 
@@ -181,7 +192,7 @@ function App() {
           <div className="header-actions">
             <div className="hidden items-center gap-2 text-[11px] text-[#6B7280] lg:flex">
               <span className={`h-2 w-2 rounded-full ${serviceStatus === "online" ? "bg-emerald-500" : serviceStatus === "offline" ? "bg-red-500" : "bg-amber-400"}`} />
-              {serviceStatus === "online" ? `API 연결 · Redis ${redisStatus === "connected" ? "정상" : "미연결"}` : serviceStatus === "offline" ? "API 연결 안 됨" : "API 확인 중"}
+              {serviceStatus === "online" ? `API 연결 · DB ${redisStatus === "connected" ? "정상" : "미연결"}` : serviceStatus === "offline" ? "API 연결 안 됨" : "API 확인 중"}
             </div>
             <button
               type="button"

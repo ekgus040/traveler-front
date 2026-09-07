@@ -256,7 +256,7 @@ export function ChatPlannerPage({
               {error ? <p className="rounded-2xl bg-red-50 p-4 text-sm text-red-700">{error}</p> : null}
               {!isStreaming && places.length > 0 ? (
                 <div className="flex gap-2 rounded-full border border-[#2D3436]/10 bg-white p-1.5 shadow-sm">
-                  <input className="min-w-0 flex-1 rounded-full px-4 text-sm outline-none" value={followUpDraft} onChange={(event) => onFollowUpDraftChange(event.target.value)} placeholder="예: 두 번째 장소를 실내 카페로 바꿔줘" />
+                  <input className="min-w-0 flex-1 rounded-full px-4 text-sm outline-none" value={followUpDraft} onChange={(event) => onFollowUpDraftChange(event.target.value)} placeholder="예: 두 번째 장소는 빼줘 / 카페를 먼저 가고 싶어" />
                   <button className="rounded-full bg-gradient-to-br from-[#FF7B59] to-[#FF6B6B] p-3 text-white" onClick={onFollowUpSubmit}><Send size={16} /></button>
                 </div>
               ) : null}
