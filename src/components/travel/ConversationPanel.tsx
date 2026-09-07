@@ -29,75 +29,65 @@ export function ConversationPanel({
   submitLabel = "다듬기",
   placeholder = "예: 점심은 조금 더 조용한 곳으로 바꿔줘",
 }: ConversationPanelProps) {
-  const tone = error ? "alert-error" : isStreaming ? "alert-info" : "alert";
-
   return (
     <section className="shell-card">
       <div className="shell-card-body space-y-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#FF7B59]">
-              Live conversation
-            </p>
-            <h2 className="section-title mt-1">일정을 더 다듬기</h2>
-          </div>
-          <span className="inline-flex h-6 items-center rounded-full bg-[#6FCEF7]/15 px-2.5 text-[11px] font-bold leading-none text-[#268CC1]">
-            ⚡ LIVE
-          </span>
+        <div>
+          <h2 className="section-title">일정 다듬기</h2>
+          <p className="mt-1 text-[13px] text-muted">{helperText}</p>
         </div>
 
-        <div className="chat-scroll">
-          {messages.length > 0 ? (
-            messages.map((message) => (
+        {messages.length > 0 ? (
+          <div className="chat-scroll space-y-2.5">
+            {messages.map((message) => (
               <div
                 key={message.id}
-                className={`chat ${message.role === "user" ? "chat-end" : "chat-start"}`}
+                className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
               >
-                <div className="chat-header mb-1 text-xs text-slate-400">
-                  {message.role === "user" ? "요청" : "추천"}
-                </div>
                 <div
-                  className={`chat-bubble whitespace-pre-wrap ${
+                  className={`max-w-[82%] whitespace-pre-wrap rounded-[12px] px-4 py-2.5 text-[14px] leading-[1.65] ${
                     message.role === "user"
-                      ? "border-0 bg-gradient-to-br from-[#FF7B59] to-[#FF6B6B] text-white shadow-[0_8px_20px_rgba(255,123,89,.2)]"
-                      : "border border-[#2D3436]/[0.06] bg-white text-[#4A5658] shadow-[0_4px_14px_rgba(45,52,54,.06)]"
+                      ? "bg-brand text-white"
+                      : "border border-line bg-surface text-sub"
                   }`}
                 >
                   {message.text || (message.role === "assistant" && isStreaming ? "..." : "")}
                 </div>
               </div>
-            ))
-          ) : (
-            <div className="rounded-2xl border border-dashed border-base-300 bg-base-200 p-4 text-sm text-slate-500">
-              {helperText}
-            </div>
-          )}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-[12px] border border-dashed border-line-strong bg-surface p-5 text-center text-[14px] text-muted">
+            아직 주고받은 요청이 없습니다.
+          </div>
+        )}
 
-        <div className="join w-full">
+        <div className="flex items-center gap-2 rounded-[10px] border border-line px-3.5 transition-colors focus-within:border-brand">
           <input
-            className="input input-bordered join-item w-full bg-white"
+            className="min-w-0 flex-1 bg-transparent py-2.5 text-[14px] text-ink outline-none placeholder:text-muted"
             value={draft}
             disabled={disabled}
             placeholder={placeholder}
             onChange={(event) => onDraftChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.nativeEvent.isComposing && !isStreaming) onSubmit();
+            }}
           />
           <button
             type="button"
-            className="btn btn-primary join-item"
+            className="btn btn-primary btn-sm shrink-0"
             disabled={disabled || isStreaming}
             onClick={onSubmit}
           >
-            {isStreaming ? "반영 중..." : submitLabel}
+            {isStreaming ? "반영 중" : submitLabel}
           </button>
         </div>
 
-        <div className={`alert ${tone}`}>
-          <div>
-            <strong>{error ? "다시 시도해 주세요." : "결과를 보고 수정 요청을 이어갈 수 있습니다."}</strong>
-            <p className="text-sm">{error ?? helperText}</p>
-          </div>
-        </div>
+        {error ? (
+          <p className="rounded-[10px] border border-[#F5C2C4] bg-[#FEF1F1] px-4 py-3 text-[13px] text-[#C63B40]">
+            {error}
+          </p>
+        ) : null}
       </div>
     </section>
   );
