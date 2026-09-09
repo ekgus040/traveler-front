@@ -32,7 +32,7 @@ Node 20.19 이상 필요. `npm install` 대신 **`npm ci`** 를 쓴다(락파일
 `KORWITHSERVICE_API_KEY` 는 비워두면 `../mobility_rag/.env` 의 같은 이름 값을 읽는다.
 따라서 이 저장소를 `mobility_rag` 와 **형제 디렉터리**로 두면 별도 설정이 필요 없다.
 
-## ⚠ dev 전용 프록시 (front#3)
+## ✅ dev 전용 프록시 (front#3 — 배포 환경에서 해소됨)
 
 `vite.config.ts` 는 개발 서버에만 존재하는 미들웨어 두 개를 등록한다.
 
@@ -46,7 +46,7 @@ Node 20.19 이상 필요. `npm install` 대신 **`npm ci`** 를 쓴다(락파일
 
 프론트는 `buildProxyUrl()` 로 호출 주소를 만든다. 개발 중에는 상대경로라 위 미들웨어가 응답하고,
 빌드 산출물에서는 `VITE_API_BASE_URL`(또는 `VITE_PROXY_BASE_URL`) 이 앞에 붙는다.
-**따라서 배포 서버가 같은 경로 두 개를 제공해야 한다.** → front#3
+**따라서 배포 서버가 같은 경로 두 개를 제공해야 한다.** → front#3 CloudFront behavior로 해소됐다
 
 ## 디렉터리
 
