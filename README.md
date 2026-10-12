@@ -1,5 +1,10 @@
 # traveler-front
 
+> **포트폴리오 공개용 사본** — 원본 `Traveler-map/traveler-front`(팀 비공개 저장소)를 커밋 기록째 옮겼습니다.
+> 한이음 드림업 · 2026 관광데이터 활용 공모전(웹·앱 개발 부문) 「트래블러」
+> 담당: 양다현([@ekgus040](https://github.com/ekgus040)) — PM · 프론트엔드 (develop 기준 27커밋 중 22커밋)
+> 추천 엔진 백엔드(`mobility_rag`)는 팀 비공개 저장소라 포함하지 않았습니다.
+
 트래블러(Traveler) 웹 프론트엔드. 채팅으로 여행 조건을 받아 `mobility_rag` 백엔드의 추천 코스를 지도 위에 그린다.
 
 - React 19 + Vite 5 + TypeScript + Tailwind(daisyUI)
