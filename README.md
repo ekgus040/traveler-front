@@ -11,6 +11,19 @@
 - 지도: 네이버 지도 JS SDK, 경로: 네이버 Directions → 실패 시 OSRM 폴백
 - 백엔드 통신: `/api/chat` (SSE), `/api/session/*`
 
+## 내 역할 — PM · 프론트엔드
+
+**PM (2026.04 ~)**
+- GitHub 저장소·머지 관리
+- MVP 기준 스프린트 운영과 일정 관리
+- 프로젝트 문서 정리
+- 팀 스프린트 흐름: Sprint 1 LLM 코어 → Sprint 2 Redis 세션·TourAPI 수집 파이프라인 → Sprint 3 Pinecone 하이브리드 검색 → MVP1 `travel_mode` API 연결
+
+**프론트엔드 (이 저장소)**
+- 채팅 기반 여행 조건 입력과 SSE 스트리밍 응답 처리
+- 네이버 지도 위 추천 코스 렌더링, Directions 실패 시 OSRM 폴백
+- 백엔드 없이 시연 가능한 목업 모드(`VITE_MOCK_MODE`)
+
 ## 빠른 시작
 
 ```bash
